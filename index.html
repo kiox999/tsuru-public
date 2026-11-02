@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v6.4";
+const APP_VER = "v6.5";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -773,7 +773,7 @@ function sfx(name){
     case 'cd': tone(ctx,t,700,0.03,'sine',v*0.18); break;
   }
 }
-let lastSig='', lastTable=0, lastTurnMine=false, hurryLast=-1, lastPassed=0, myAppeal=false;
+let lastTableSig='', lastSig='', lastTable=0, lastTurnMine=false, hurryLast=-1, lastPassed=0, myAppeal=false;
 function cue(){
   if(!S)return;
   const n=S.table.length; const meTurn=(S.phase==='play'&&S.players[S.turnIdx].id===me)||(S.phase==='tsuru'&&S.tsuru===me)||(S.phase==='steal'&&S.stealQueue[S.stealIdx]===me)||(S.phase==='voting'&&voters(S,S.voteFor==='tsuru'?S.tsuru:S.stealQueue[S.stealIdx]).some(p=>p.id===me)&&!(S.jv||{})[me]);
@@ -1698,7 +1698,9 @@ function render(){
   $('rnd').textContent=S.mode==='rank'?S.round+'/'+S.maxRounds:(S.rounds?S.round+'/'+S.rounds:S.round);
   $('btnQuit').textContent=quitArmed?$('btnQuit').textContent:'退室';
   const g=$('genreBox'); g.textContent=S.genreDeck[S.genre]+(S.genreOnTable?'':'（獲得済）'); g.classList.toggle('gone',!S.genreOnTable);
-  $('tableBox').innerHTML=S.table.length?S.table.map((t,i)=>`<div class="cond"><span class="n">${i+1}</span><span>${esc(S.condDeck[t.card])}</span><span class="by">${esc(pname(S,t.by))}</span></div>`).join(''):'<div class="muted">まだ札はありません</div>';
+  const tSig=S.code+'|'+S.round+'|'+S.table.map(t=>t.card+':'+t.by).join(',');
+  if(tSig!==lastTableSig){ lastTableSig=tSig;
+  $('tableBox').innerHTML=S.table.length?S.table.map((t,i)=>`<div class="cond"><span class="n">${i+1}</span><span>${esc(S.condDeck[t.card])}</span><span class="by">${esc(pname(S,t.by))}</span></div>`).join(''):'<div class="muted">まだ札はありません</div>'; }
   $('deckInfo').textContent='山札 '+S.deck.length+'　捨て札 '+S.discard.length;
   const meP=P(S,me);
   const stealPhase=['verdict','steal','stealJudging','stealVerdict'].includes(S.phase)&&S.verdict&&S.verdict.ok&&(S.stealQueue||[]).length;
