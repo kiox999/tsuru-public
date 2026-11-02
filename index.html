@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v6.6";
+const APP_VER = "v6.7";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -1077,7 +1077,7 @@ async function stealAnswerSubmit(ans,timeout){
 }
 function applyStealVerdict(s){
   const id=s.stealQueue[s.stealIdx]; const p=P(s,id); const t=P(s,s.tsuru); const v=s.stealVerdict;
-  if(v.err){ log(s,'AI判定に失敗。'+p.name+' はもう一度答えられる'); s.stealVerdict=null; s.phase='steal'; s.turnStartAt=now(); return; }
+  if(v.err){ log(s,'AI判定に失敗（'+p.name+'の答えは保持）'); s.stealResults.push({by:id,answer:s.stealAnswer,ok:false,err:true,reason:v.reason}); s.phase='stealVerdict'; s.turnStartAt=now(); return; }
   const r={by:id,answer:s.stealAnswer,ok:v.ok,genreOk:v.genreOk,reason:v.reason};
   if(v.ok){ if(s.tsuruGained>0){ t.score-=1; p.score+=1; s.tsuruGained--; }
     if(s.genreOnTable&&v.genreOk&&!s.stealGenreTaken){ p.score+=1; s.genreOnTable=false; s.stealGenreTaken=true; r.gotGenre=true; }
@@ -1115,7 +1115,7 @@ async function appeal(text){
   // 得点を一旦巻き戻してから再判定
   if(s.phase==='verdict'){ const t=P(s,s.tsuru); const n=s.table.length; if(!s.verdict.ok&&!s.verdict.err){ t.fails=Math.max(0,(t.fails||0)-1); t.out=false; } if(s.verdict.ok){t.score-=n; if(s.verdict.genreOk){t.score-=1;s.genreOnTable=true;} s.table.forEach(x=>delete x.taken);} else t.score+=n;
     s.tsuruGained=0; s.stealQueue=[]; s.phase='judging'; s.judgeKey='a'+s.round+'-'+now(); }
-  else { const r=s.stealResults.pop(); const p=P(s,r.by); const t=P(s,s.tsuru); if(r.ok){p.score-=1;t.score+=1;s.tsuruGained++; if(r.gotGenre){p.score-=1;s.genreOnTable=true;s.stealGenreTaken=false;}}
+  else { if(s.stealResults.length&&s.stealResults[s.stealResults.length-1].err)return; const r=s.stealResults.pop(); const p=P(s,r.by); const t=P(s,s.tsuru); if(r.ok){p.score-=1;t.score+=1;s.tsuruGained++; if(r.gotGenre){p.score-=1;s.genreOnTable=true;s.stealGenreTaken=false;}}
     s.stealIdx--; s.stealAnswer=r.answer; s.phase='stealJudging'; s.judgeKey='b'+s.round+'-'+s.stealIdx+'-'+now(); }
   log(s,myName+'：異議あり「'+s.appeal.text+'」→ 再判定'); await save(s);
 }
@@ -1802,6 +1802,14 @@ function render(){
     runTimer(deadline,()=>{ if(mine)stealAnswerSubmit($('inSt')?$('inSt').value:'',true); else if(isHost&&P(S,who)&&P(S,who).cpu){ const v0=S.v; setTimeout(async()=>{ if(S&&S.v===v0&&S.phase==='steal'){ const s=clone(); cpuKey='timeout:'+v0; await cpuFallback(s); await save(s); } },5000); } });
     if(mine){ act.innerHTML=`<form id="fSt" class="row"><input id="inSt" class="grow" placeholder="別の答え" autocomplete="off"><button class="pri" type="submit">解答</button></form>`;
       $('fSt').onsubmit=e=>{e.preventDefault();stealAnswerSubmit($('inSt').value,false);}; setTimeout(()=>$('inSt')&&$('inSt').focus(),50); }
+  }
+  else if(S.phase==='stealVerdict'&&S.stealResults.length&&S.stealResults[S.stealResults.length-1].err){
+    const r=S.stealResults[S.stealResults.length-1];
+    vb.innerHTML=`<div class="verdict ng"><div class="lbl">${esc(pname(S,r.by))} の同時解答</div><div class="ans">${esc(r.answer)}</div><div><b>AI判定に失敗（得点は変わりません）</b></div><div class="muted">${esc(r.reason||'')}</div></div>`;
+    band.innerHTML=`<h2>判定できませんでした</h2>${orderStrip()}`;
+    act.innerHTML=isHost?`<div class="row"><button class="pri grow" id="bRejudge2">もう一度判定</button><button class="grow" id="bFail2">不成立として次へ</button></div>`:`<div class="muted">主催者が進めます</div>`;
+    if(isHost){ $('bRejudge2').onclick=async()=>{const s=clone(); s.stealResults.pop(); s.stealAnswer=r.answer; s.phase='stealJudging'; s.judgeKey='c'+s.round+'-'+s.stealIdx+'-'+now(); await save(s);};
+      $('bFail2').onclick=async()=>{const s=clone(); const x=s.stealResults[s.stealResults.length-1]; x.err=false; x.reason='判定不能のため不成立扱い'; s.stealIdx++; advanceSteal(s); await save(s);}; }
   }
   else if(S.phase==='stealVerdict'){
     const r=S.stealResults[S.stealResults.length-1];
