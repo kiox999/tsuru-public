@@ -1,0 +1,1106 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>鶴の一声</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database-compat.js"></script>
+<script>
+// ====== ここをあなたのFirebase設定に置き換える（SETUP.md 参照） ======
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyDeVLhja2EEMxAht2RRmO1fKjBjIzrQ6H8",
+  authDomain: "crane-s-voice.firebaseapp.com",
+  databaseURL: "https://crane-s-voice-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "crane-s-voice",
+  storageBucket: "crane-s-voice.firebasestorage.app",
+  messagingSenderId: "245518258797",
+  appId: "1:245518258797:web:c5c8ab6546b3052f5a2564"
+};
+// =====================================================================
+</script>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&display=swap">
+<style>
+[hidden]{display:none!important}
+img{max-width:100%}
+/* 和風ポップ：朱・藍・金の三色に、青海波と麻の葉。丸ゴシックで軟らかく、見出しは太いデラゴシック */
+:root{
+  --bg:#fff6e5; --bg2:#ffe9c7; --panel:#fffdf7; --ink:#2a2420; --mute:#8a7a6a; --line:#e8d4b0;
+  --shu:#e2452f; --shu-soft:#ffd9cf; --ai:#2c4f8f; --ai-soft:#d8e3f7; --kin:#d9a21b; --kin-soft:#fff0bd;
+  --ok:#2e8b57; --ok-soft:#d8f0e0; --ng:#c9302c; --ng-soft:#ffdcd9;
+  --wave:rgba(44,79,143,.10);
+  --disp:"Dela Gothic One","Zen Maru Gothic",sans-serif;
+  --deco:"Kaisei Decol","Zen Maru Gothic",serif;
+  --body:"Zen Maru Gothic","Hiragino Maru Gothic ProN","Noto Sans JP",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#1c1a22; --bg2:#262231; --panel:#2a2733; --ink:#f4ecdd; --mute:#a99c8c; --line:#443d4d;
+  --shu:#ff6a4f; --shu-soft:#4d2a26; --ai:#8fb0ec; --ai-soft:#283a5e; --kin:#f1c24a; --kin-soft:#4a3d18;
+  --ok:#6fcf97; --ok-soft:#1f3b2b; --ng:#ff7a70; --ng-soft:#4a2624; --wave:rgba(143,176,236,.10); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#1c1a22; --bg2:#262231; --panel:#2a2733; --ink:#f4ecdd; --mute:#a99c8c; --line:#443d4d;
+  --shu:#ff6a4f; --shu-soft:#4d2a26; --ai:#8fb0ec; --ai-soft:#283a5e; --kin:#f1c24a; --kin-soft:#4a3d18;
+  --ok:#6fcf97; --ok-soft:#1f3b2b; --ng:#ff7a70; --ng-soft:#4a2624; --wave:rgba(143,176,236,.10); color-scheme:dark}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;color:var(--ink);font-family:var(--body);font-weight:500;font-size:15px;line-height:1.6;
+  background:var(--bg);
+  background-image:
+    radial-gradient(circle at 50% 110%, transparent 54px, var(--wave) 55px, var(--wave) 58px, transparent 59px),
+    radial-gradient(circle at 0% 110%, transparent 54px, var(--wave) 55px, var(--wave) 58px, transparent 59px),
+    radial-gradient(circle at 100% 110%, transparent 54px, var(--wave) 55px, var(--wave) 58px, transparent 59px);
+  background-size:120px 60px; background-position:0 0, 60px 30px, 60px 30px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px 32px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:var(--disp);font-weight:400}
+h2{font-family:var(--disp);font-weight:400;letter-spacing:.02em}
+button{font:inherit;font-weight:700;cursor:pointer;border:2px solid var(--ink);background:var(--panel);color:var(--ink);border-radius:14px;padding:10px 16px;min-height:46px;box-shadow:0 3px 0 var(--ink);transition:transform .06s,box-shadow .06s}
+button:active:not(:disabled){transform:translateY(3px);box-shadow:0 0 0 var(--ink)}
+button:focus-visible,input:focus-visible,textarea:focus-visible,select:focus-visible{outline:3px solid var(--kin);outline-offset:2px}
+button:disabled{opacity:.4;cursor:default;box-shadow:none;transform:translateY(3px)}
+button.pri{background:var(--shu);border-color:var(--ink);color:#fff}
+button.sec{background:var(--ai);border-color:var(--ink);color:#fff}
+input,textarea,select{font:inherit;border:2px solid var(--line);background:var(--panel);color:var(--ink);border-radius:12px;padding:10px 14px;width:100%}
+textarea{min-height:120px;resize:vertical}
+.wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.top h1{font-size:34px;letter-spacing:.08em;color:var(--shu);text-shadow:3px 3px 0 var(--kin-soft);display:flex;align-items:center;gap:10px}
+.top h1::before{content:"";width:34px;height:34px;border-radius:50%;background:var(--shu);box-shadow:inset 0 0 0 5px var(--panel),inset 0 0 0 8px var(--shu);flex:none}
+.top .sub{color:var(--mute);font-size:11px;letter-spacing:.3em;font-weight:700}
+.card{background:var(--panel);border:2px solid var(--ink);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-shadow:5px 5px 0 var(--kin-soft)}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.row>*{min-width:0}
+.grow{flex:1 1 160px}
+.lbl{font-size:11px;letter-spacing:.2em;color:var(--mute);font-weight:900}
+.lbl::before{content:"◆ ";color:var(--kin)}
+.code{font-family:var(--disp);font-size:34px;letter-spacing:.3em;color:var(--ai)}
+.muted{color:var(--mute);font-size:13px}
+.hidden{display:none!important}
+/* 場の札 */
+.table{display:flex;flex-direction:column;gap:8px}
+.cond{display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid var(--ink);border-radius:12px;background:var(--bg2);position:relative;font-weight:700}
+.cond .n{font-family:var(--disp);color:#fff;background:var(--shu);border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-size:14px;flex:none;border:2px solid var(--ink)}
+.cond .by{margin-left:auto;font-size:12px;color:var(--mute);white-space:nowrap;font-weight:500}
+.genre{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--ai);color:#fff;font-weight:900;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
+.genre.gone{opacity:.45;text-decoration:line-through;box-shadow:none}
+/* 手札 */
+.hand{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.hcard{border:2px solid var(--ink);border-radius:12px;padding:14px 12px;background:var(--panel);text-align:center;min-height:72px;display:flex;align-items:center;justify-content:center;font-weight:700;line-height:1.35;box-shadow:0 3px 0 var(--ink);position:relative;overflow:hidden}
+.hcard::before{content:"";position:absolute;inset:4px;border:1px dashed var(--line);border-radius:8px;pointer-events:none}
+.hcard.sel{background:var(--kin-soft);border-color:var(--shu);box-shadow:0 0 0 3px var(--shu),0 3px 0 var(--ink)}
+/* プレイヤー */
+.players{display:flex;flex-direction:column;gap:6px}
+.pl{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:12px;font-variant-numeric:tabular-nums;border:2px solid transparent}
+.pl.me{background:var(--bg2);border-color:var(--line)}
+.pl.turn{border-color:var(--shu);background:var(--shu-soft)}
+.pl .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
+.pl .sc{font-family:var(--disp);font-size:20px;min-width:2.5em;text-align:right;color:var(--ai)}
+.tag{font-size:11px;padding:2px 9px;border-radius:999px;border:2px solid var(--line);color:var(--mute);white-space:nowrap;font-weight:900}
+.tag.tsuru{background:var(--shu);color:#fff;border-color:var(--ink)}
+.tag.host{background:var(--kin);color:var(--ink);border-color:var(--ink)}
+.tag.ord{background:var(--ai);color:#fff;border-color:var(--ink)}
+.tag.ord.now{background:var(--shu)}
+.tag.done{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
+.tag.ng2{background:var(--ng-soft);color:var(--ng);border-color:var(--ng)}
+.pl.stealnow{border-color:var(--shu);background:var(--shu-soft)}
+.order{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
+.order .st{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:2px solid var(--line);background:var(--panel);font-weight:700}
+.order .st.now{border-color:var(--shu);background:var(--shu-soft);color:var(--shu)}
+.order .st.done{opacity:.6}
+.order .arrow{color:var(--mute)}
+/* 状態帯 */
+.band{padding:14px 16px;border-radius:18px;background:var(--panel);border:2px solid var(--ink);color:var(--ink);display:flex;flex-direction:column;gap:6px;box-shadow:5px 5px 0 var(--ai-soft)}
+.band h2{font-size:20px;color:var(--ai)}
+.band.mine{background:var(--shu-soft);border-color:var(--shu);box-shadow:5px 5px 0 var(--shu)}
+.band.mine h2{color:var(--shu)}
+.timer{font-family:var(--disp);font-size:44px;line-height:1;color:var(--ai);font-variant-numeric:tabular-nums}
+.timer.hurry{color:var(--ng)}
+.verdict{padding:14px 16px;border-radius:18px;display:flex;flex-direction:column;gap:4px;border:2px solid var(--ink)}
+.verdict.ok{background:var(--ok-soft);box-shadow:5px 5px 0 var(--ok)}
+.verdict.ng{background:var(--ng-soft);box-shadow:5px 5px 0 var(--ng)}
+.verdict .ans{font-family:var(--deco);font-size:30px;font-weight:700}
+.log{font-size:13px;color:var(--mute);display:flex;flex-direction:column;gap:2px;max-height:160px;overflow:auto}
+.log div{border-bottom:1px dashed var(--line);padding:3px 0}
+details summary{cursor:pointer;color:var(--ai);font-size:13px;font-weight:700}
+.rules{font-size:13px;line-height:1.7}
+.rules li{margin-bottom:4px}
+.vol{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+.vol input[type=range]{width:90px;padding:0;height:24px;accent-color:var(--shu);border:none;background:none}
+.vol button{min-height:32px;padding:4px 8px;font-size:14px;border-radius:10px;box-shadow:0 2px 0 var(--ink)}
+@media (prefers-reduced-motion:no-preference){
+  .hcard,.cond{transition:box-shadow .15s,border-color .15s,background .15s}
+  .band.mine{animation:pulse 1.2s ease-in-out infinite}
+  @keyframes pulse{0%,100%{box-shadow:5px 5px 0 var(--shu)}50%{box-shadow:5px 5px 0 var(--shu),0 0 0 8px var(--shu-soft)}}
+  .cond{animation:drop .25s ease-out}
+  @keyframes drop{from{transform:translateY(-8px) rotate(-1deg);opacity:0}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>鶴の一声</h1><div class="sub">— ひとこえで、場をさらえ —</div></div>
+    <div class="row"><div id="topRight" class="muted"></div>
+      <div class="vol"><button id="btnMute" title="ミュート">🔊</button><input id="inVol" type="range" min="0" max="100" value="60" aria-label="音量"><button id="btnKey" title="AI設定">⚙</button></div></div>
+  </div>
+
+  <!-- 入室前 -->
+  <div id="vEntry" class="card">
+    <div class="lbl">名前</div>
+    <input id="inName" maxlength="12" placeholder="ニックネーム">
+    <div class="row">
+      <button class="pri grow" id="btnCreate">部屋をつくる（主催）</button>
+      <button class="grow" id="btnTut">はじめての人はこちら（練習・約3分）</button>
+    </div>
+    <div class="row">
+      <input id="inCode" class="grow" maxlength="4" placeholder="部屋コード 4桁" inputmode="numeric" style="letter-spacing:.3em;font-size:20px;text-align:center">
+      <button class="sec" id="btnJoin">参加</button>
+    </div>
+    <div id="entryMsg" class="muted">同じ部屋コードを入力した全員が、各自の端末から同じ卓に着きます。アカウント登録は不要。</div>
+    <details id="keyBox"><summary>AI設定（主催者のみ必要）</summary>
+      <div class="muted" style="margin:6px 0">主催者の端末だけがAI（判定・AI対戦相手）を呼び出します。AnthropicのAPIキーをこの端末に保存します（この端末のブラウザにだけ残り、他の参加者には送られません）。</div>
+      <div class="row"><input id="inKey" class="grow" type="password" placeholder="sk-ant-..." autocomplete="off"><button id="btnSaveKey">保存</button></div>
+      <div id="keyMsg" class="muted"></div>
+    </details>
+    <details><summary>ルールを読む</summary>
+      <ol class="rules">
+        <li>ラウンド開始時にジャンルが公開される。ジャンルは<b>任意</b>。満たさなくても答えは有効で、満たせば＋1点のボーナス。</li>
+        <li>手番が来たら、場の条件すべて＋出す札を満たす言葉を20秒以内に思いつけるときだけ札を出せる。無理ならパス（以後そのラウンドは出せない）。</li>
+        <li>自分以外の全員がパスしたら（または全員がパスしたら）、最後に札を出した人が自動で鶴。手札から1枚追加してもよく、20秒以内に答えを宣言。</li>
+        <li>AIが判定。成功なら場の札の枚数分が得点（ジャンルも満たせば＋1）。失敗なら枚数分マイナス。</li>
+        <li>成功時、このラウンドに1枚でも札を出した他の人（途中でパスしていても可）が逆順に別解を答える（鶴と同じ答えは不可）。成功すれば鶴の札を1枚奪う。</li>
+        <li>判定に納得できなければ「異議」でAIに再判定を求められる（1回）。</li>
+        <li>ラウンド終了時に、いらない手札を選んで交換できる（1回）。次のラウンド開始時に5枚まで補充。</li>
+        <li>合計20点で勝ち。</li>
+      </ol>
+    </details>
+  </div>
+
+  <!-- チュートリアル -->
+  <div id="vTut" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="row"><span class="lbl">練習ラウンド　ジャンル</span><span class="genre">食べ物</span><span class="muted">（任意・満たせば＋1）</span></div>
+      <div class="lbl">場の条件</div>
+      <div class="table" id="tTable"></div>
+    </div>
+    <div class="band" id="tBand"></div>
+    <div class="card" id="tAct"></div>
+    <div class="card"><div class="lbl">手札</div><div class="hand" id="tHand"></div></div>
+    <div class="card"><div class="lbl">得点</div><div class="players" id="tPlayers"></div></div>
+    <div class="row"><button id="btnTutQuit">チュートリアルをやめる</button></div>
+  </div>
+
+  <!-- ロビー -->
+  <div id="vLobby" class="card hidden">
+    <div class="row"><div><div class="lbl">部屋コード</div><div class="code" id="lobbyCode"></div></div>
+      <div class="grow muted">このコードを伝えて参加してもらう。3〜8人。</div></div>
+    <div class="lbl">参加者</div>
+    <div class="players" id="lobbyPlayers"></div>
+    <div id="hostCtl" class="hidden" style="display:flex;flex-direction:column;gap:10px">
+      <div class="row">
+        <label class="grow">勝利点 <input id="inTarget" type="number" value="20" min="5" max="50" style="width:90px;display:inline-block"></label>
+        <label class="grow">判定AI
+          <select id="inModel" style="font:inherit;padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--ink)">
+            <option value="haiku">軽量（Haiku・安い）</option><option value="sonnet">標準（Sonnet）</option>
+          </select></label>
+      </div>
+      <details><summary>条件カードを編集する（1行1枚）</summary>
+        <textarea id="inDeck"></textarea>
+        <div class="lbl" style="margin-top:8px">ジャンルカード（1行1枚）</div>
+        <textarea id="inGenres" style="min-height:70px"></textarea>
+      </details>
+      <div class="row"><button id="btnAddCpu" class="grow">AI対戦相手を追加</button><button id="btnRemoveCpu" class="grow">AIを1人減らす</button></div>
+      <div class="muted">AIは主催者の端末からHaikuで動かします（APIの料金は主催者負担）。1人でもAI相手にテストできます。</div>
+      <button class="pri" id="btnStart">ゲーム開始</button>
+    </div>
+    <div id="lobbyWait" class="muted">主催者の開始を待っています…</div>
+    <button id="btnLeave">退室</button>
+  </div>
+
+  <!-- 対局 -->
+  <div id="vGame" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="row"><span class="lbl">第<span id="rnd"></span>ラウンド　ジャンル</span><span class="genre" id="genreBox"></span></div>
+      <div class="lbl">場の条件</div>
+      <div class="table" id="tableBox"></div>
+    </div>
+
+    <div class="band" id="band"></div>
+    <div id="verdictBox"></div>
+
+    <div class="card" id="actBox"></div>
+
+    <div class="card">
+      <div class="row"><span class="lbl grow">手札</span><span class="muted" id="deckInfo"></span></div>
+      <div class="hand" id="handBox"></div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">得点</div>
+      <div class="players" id="gamePlayers"></div>
+    </div>
+
+    <div class="card">
+      <div class="lbl">記録</div>
+      <div class="log" id="logBox"></div>
+      <div class="row"><button id="btnHostSkip" class="hidden">手番を強制スキップ（主催）</button><button id="btnQuit">退室</button></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- カード ----------
+const DEFAULT_COND = `赤い
+青い
+白い
+黒い
+黄色い
+緑色が含まれる
+丸い
+四角い
+細長い
+手のひらに乗る大きさ
+人より大きい
+重い
+軽い
+硬い
+柔らかい
+冷たい
+熱い
+甘い
+辛い
+酸っぱい
+食べられる
+飲める
+水に浮く
+水に沈む
+燃える
+光る
+音が出る
+自分で動く
+生きている
+空を飛ぶ
+海にいる・海にある
+山にある
+家の中にある
+学校にある
+病院にある
+コンビニで買える
+100円以下で買える
+日本発祥
+外国から来た
+冬を連想させる
+夏を連想させる
+夜に関係する
+朝に関係する
+動物
+植物
+乗り物
+道具
+食べ物
+職業
+スポーツに関係する
+楽器
+国名・地名
+架空の存在
+子どもに人気
+猫に関係する
+卵から生まれる
+足が4本
+羽がある
+尻尾がある
+毛が生えている
+においがある
+良い香りがする
+水分が多い
+透明
+折りたためる
+回転する
+ボタンがある
+電気で動く
+投げられる
+毎日使う
+お祝いに関係する
+怖い
+笑える
+眠くなる
+痛い
+穴が開いている
+尖っている
+縞模様
+木でできている
+金属でできている
+紙でできている
+ガラスでできている
+布でできている
+雨に関係する
+雪に関係する
+マンガやアニメに出てくる
+一人でできる
+動作である（〜する）
+昔話に出てくる
+赤ちゃんが使う
+温泉にある
+駅にある
+茶色い
+ピンク色
+銀色・灰色
+平たい
+指先くらい小さい
+音がうるさい
+台所にある
+お風呂場にある
+公園にある
+冷蔵庫に入れる
+加熱して食べる
+お正月に関係する
+寝るときに使う
+速い
+遅い
+大きい
+小さい
+長い
+短い
+高いところにある
+低い・地面に近い
+強い
+弱い
+新しい
+古い
+明るい
+暗い
+かわいい
+かっこいい
+便利
+危ない
+静か
+うるさい
+濡れている
+乾いている
+暖かい
+太い
+細い
+深い
+浅い
+ふわふわ
+ツルツル
+ベタベタ
+キラキラ
+おいしい
+まずい
+くさい
+大人っぽい
+子どもっぽい
+高級
+安っぽい
+元気
+眠そう
+1万円以上する
+平成以降に生まれた
+年に1回くらいしか使わない
+歴史上の人物に関係する
+神様に関係する
+免許や資格が要る
+二人以上でする
+2つで1セット
+季節限定
+月（つき）に関係する
+太陽に関係する
+100年以上前からある
+結婚式にある
+映画になっている
+ゲームに出てくる
+お年寄りに人気
+使い捨て
+棒状
+ひらがな3文字で書ける
+「ん」で終わる
+カタカナで書く言葉
+漢字2文字で書ける
+英語で言える
+歌の題名になっている
+数字が含まれる
+色の名前が含まれる
+速く動く
+動かない
+柔らかくて曲がる
+水に関係する
+火に関係する
+風に関係する
+土・砂に関係する
+緑色
+紫色
+オレンジ色
+金色
+縞模様か水玉
+つやつや
+ザラザラ
+カリカリ
+ねばねば
+しょっぱい
+苦い
+香ばしい
+日本っぽい
+洋風
+都会にある
+田舎にある
+空にある・空に関係する
+地面の下にある
+机の上にある
+ポケットに入る
+両手で持つ
+持ち運べる
+高価ではない
+みんな持っている
+珍しい
+有名
+人気がある
+怒っている
+楽しい
+悲しい
+うれしい
+びっくりする
+恥ずかしい
+なつかしい
+面倒くさい
+ワクワクする
+ドキドキする
+癒やされる
+目立つ
+地味
+丁寧
+雑
+不思議
+普通
+変
+おしゃれ
+ダサい
+長持ちする
+すぐ壊れる
+季節を感じる
+お金に関係する
+時間に関係する
+数に関係する
+言葉に関係する`;
+const DEFAULT_GENRE = `食べ物
+動物
+乗り物
+スポーツ
+職業
+植物
+日用品
+家電
+文房具
+楽器
+場所・建物
+遊び・ゲーム
+行事・イベント
+自然現象
+感情・状態
+動作
+身体
+衣類
+キャラクター
+歴史・偉人
+学校
+病院・医療
+旅行
+音楽`;
+
+// ---------- 定数 ----------
+const HAND=5;
+const T_PLAY=20, T_DECLARE=20, T_STEAL=20;
+const $=id=>document.getElementById(id);
+let fdb=null, sample=null, me=null, myName='', roomRef=null, unsub=null, S=null, selCard=-1, timerIv=null, judgingKey='', localDeadline=0;
+let hot=null;
+
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function log(s,msg){s.log=[...(s.log||[]).slice(-29),msg]}
+function pname(s,id){const p=s.players.find(p=>p.id===id);return p?p.name:'？'}
+function P(s,id){return s.players.find(p=>p.id===id)}
+function now(){return Date.now()}
+function esc(t){return String(t).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+// ---------- 効果音（Web Audio、合成音） ----------
+const SFX={ctx:null,vol:0.6,muted:false};
+try{ const v=localStorage.getItem('tsuru.vol'); if(v!==null)SFX.vol=Math.max(0,Math.min(1,parseFloat(v))); SFX.muted=localStorage.getItem('tsuru.muted')==='1'; }catch(e){}
+$('inVol').value=Math.round(SFX.vol*100); $('btnMute').textContent=SFX.muted?'🔇':'🔊';
+$('inVol').oninput=()=>{SFX.vol=$('inVol').value/100; try{localStorage.setItem('tsuru.vol',SFX.vol)}catch(e){}};
+$('inVol').onchange=()=>{sfx('tick');};
+$('btnMute').onclick=()=>{SFX.muted=!SFX.muted; $('btnMute').textContent=SFX.muted?'🔇':'🔊'; try{localStorage.setItem('tsuru.muted',SFX.muted?'1':'0')}catch(e){} if(!SFX.muted)sfx('tick');};
+function actx(){ if(!SFX.ctx){ try{SFX.ctx=new (window.AudioContext||window.webkitAudioContext)();}catch(e){return null;} } if(SFX.ctx.state==='suspended')SFX.ctx.resume(); return SFX.ctx; }
+document.addEventListener('pointerdown',()=>actx(),{once:true});
+function tone(ctx,t0,freq,dur,type,gain,slideTo){ const o=ctx.createOscillator(), g=ctx.createGain(); o.type=type||'sine'; o.frequency.setValueAtTime(freq,t0); if(slideTo)o.frequency.exponentialRampToValueAtTime(slideTo,t0+dur);
+  g.gain.setValueAtTime(0.0001,t0); g.gain.exponentialRampToValueAtTime(gain,t0+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t0+dur); o.connect(g); g.connect(ctx.destination); o.start(t0); o.stop(t0+dur+0.02); }
+function sfx(name){
+  if(SFX.muted||SFX.vol<=0)return; const ctx=actx(); if(!ctx)return; const v=SFX.vol*0.5, t=ctx.currentTime;
+  switch(name){
+    case 'tick': tone(ctx,t,880,0.06,'square',v*0.5); break;
+    case 'btn': tone(ctx,t,1500,0.035,'square',v*0.35); tone(ctx,t+0.03,2200,0.05,'sine',v*0.4); break;
+    case 'sel': tone(ctx,t,1046,0.05,'triangle',v*0.5,1318); break;
+    case 'card': tone(ctx,t,520,0.07,'triangle',v*0.8,380); tone(ctx,t+0.05,260,0.1,'triangle',v*0.5); break;
+    case 'pass': tone(ctx,t,300,0.12,'sine',v*0.6,200); break;
+    case 'myturn': [660,880,1100].forEach((f,i)=>tone(ctx,t+i*0.09,f,0.14,'sine',v)); tone(ctx,t+0.3,1320,0.25,'sine',v*0.8); break;
+    case 'tsuru': [523,659,784,1047].forEach((f,i)=>tone(ctx,t+i*0.1,f,0.2,'triangle',v*0.9)); break;
+    case 'judging': for(let i=0;i<4;i++)tone(ctx,t+i*0.16,440+i*40,0.08,'sine',v*0.5); break;
+    case 'ok': [784,988,1175,1568].forEach((f,i)=>tone(ctx,t+i*0.08,f,0.3,'triangle',v)); tone(ctx,t+0.35,1568,0.5,'sine',v*0.7); break;
+    case 'ng': tone(ctx,t,330,0.25,'sawtooth',v*0.6,220); tone(ctx,t+0.22,220,0.4,'sawtooth',v*0.6,150); break;
+    case 'steal': tone(ctx,t,1200,0.06,'square',v*0.6); tone(ctx,t+0.07,900,0.06,'square',v*0.6); tone(ctx,t+0.14,1500,0.18,'triangle',v*0.9); break;
+    case 'round': [660,550,440].forEach((f,i)=>tone(ctx,t+i*0.12,f,0.18,'sine',v*0.7)); break;
+    case 'win': [523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(ctx,t+i*0.13,f,0.35,'triangle',v)); break;
+    case 'hurry': tone(ctx,t,1000,0.05,'square',v*0.7); break;
+    case 'cd': tone(ctx,t,700,0.03,'sine',v*0.18); break;
+  }
+}
+let lastSig='', lastTable=0, lastTurnMine=false, hurryLast=-1, lastPassed=0;
+function cue(){
+  if(!S)return;
+  const n=S.table.length; const meTurn=(S.phase==='play'&&S.players[S.turnIdx].id===me)||(S.phase==='tsuru'&&S.tsuru===me)||(S.phase==='steal'&&S.stealQueue[S.stealIdx]===me);
+  const sig=S.phase+'|'+(S.phase==='verdict'?S.answer:'')+'|'+(S.phase==='stealVerdict'?S.stealResults.length:'')+'|'+S.round;
+  const passedN=S.players.filter(p=>p.passed).length;
+  if(S.phase==='play'&&n>lastTable) sfx('card');
+  else if(S.phase==='play'&&passedN>lastPassed&&sig===lastSig) sfx('pass');
+  lastPassed=S.phase==='play'?passedN:0;
+  if(sig!==lastSig){
+    if(S.phase==='tsuru'&&S.tsuruStage==='extra') sfx(S.tsuru===me?'tsuru':'card');
+    else if(S.phase==='judging'||S.phase==='stealJudging') sfx('judging');
+    else if(S.phase==='verdict') sfx(S.verdict&&S.verdict.ok?'ok':'ng');
+    else if(S.phase==='stealVerdict'){ const r=S.stealResults[S.stealResults.length-1]; sfx(r&&r.ok?'steal':'ng'); }
+    else if(S.phase==='roundEnd') sfx('round');
+    else if(S.phase==='over') sfx('win');
+  }
+  if(meTurn&&!lastTurnMine){ sfx('myturn'); try{navigator.vibrate&&navigator.vibrate([80,40,80])}catch(e){} flashTitle(); }
+  if(!meTurn) stopFlash();
+  lastSig=sig; lastTable=n; lastTurnMine=meTurn; if(S.phase!=='play')lastTable=0;
+}
+let flashIv=null; const baseTitle=document.title;
+function flashTitle(){ stopFlash(); let on=false; flashIv=setInterval(()=>{on=!on;document.title=on?'🔴 あなたの番！':baseTitle;},700); }
+function stopFlash(){ if(flashIv){clearInterval(flashIv);flashIv=null;} document.title=baseTitle; }
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden&&!lastTurnMine)stopFlash(); });
+document.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b||b.disabled||b.id==='btnMute')return; if(b.classList.contains('hcard'))sfx('sel'); else sfx('btn'); },true);
+
+// ---------- 初期化 ----------
+try{myName=localStorage.getItem('tsuru.name')||'';}catch(e){}
+$('inName').value=myName;
+$('inDeck').value=DEFAULT_COND; $('inGenres').value=DEFAULT_GENRE;
+
+// ---------- AI（主催者端末からAnthropic APIを直接呼ぶ） ----------
+const MODELS={haiku:'claude-haiku-5-5',sonnet:'claude-sonnet-5-5'};
+let apiKey=''; try{apiKey=localStorage.getItem('tsuru.apikey')||'';}catch(e){}
+function refreshKeyUI(){ sample=apiKey?aiJson:null; $('keyMsg').textContent=apiKey?'保存済み（'+apiKey.slice(0,10)+'…）。消すには空欄で保存。':'未設定。主催するにはAPIキーが必要です。'; }
+$('btnSaveKey').onclick=()=>{ apiKey=$('inKey').value.trim(); try{ if(apiKey)localStorage.setItem('tsuru.apikey',apiKey); else localStorage.removeItem('tsuru.apikey'); }catch(e){} $('inKey').value=''; refreshKeyUI(); };
+$('btnKey').onclick=()=>{ if(S){ $('keyMsg').textContent='APIキーの変更は退室してから。'; } $('keyBox').open=true; $('keyBox').scrollIntoView({behavior:'smooth'}); };
+async function aiJson(prompt,opts){
+  const model=MODELS[(opts&&opts.model)||(S&&S.judgeModel)||'haiku']||MODELS.haiku;
+  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model,max_tokens:400,messages:[{role:'user',content:prompt+'\n\n出力はJSONのみ。説明文やコードフェンスは不要。'}]})});
+  if(!r.ok){ const t=await r.text(); throw {code:'http_'+r.status,message:t.slice(0,200)}; }
+  const j=await r.json(); const text=(j.content||[]).map(c=>c.text||'').join('');
+  const a=text.indexOf('{'), b=text.lastIndexOf('}'); if(a<0||b<0) throw {code:'invalid_json',message:text};
+  return JSON.parse(text.slice(a,b+1));
+}
+
+// ---------- 接続・識別 ----------
+function uid(){ let u=''; try{u=localStorage.getItem('tsuru.uid')||'';}catch(e){} if(!u){u='u'+Math.random().toString(36).slice(2,10)+Date.now().toString(36); try{localStorage.setItem('tsuru.uid',u)}catch(e){}} return u; }
+const ARR=['players','table','deck','discard','gdeck','gdiscard','log','stealQueue','stealResults','condDeck','genreDeck'];
+function normalize(s){ if(!s)return s; ARR.forEach(k=>{ if(!Array.isArray(s[k])) s[k]=s[k]?Object.values(s[k]):[]; }); s.players.forEach(p=>{ if(!Array.isArray(p.hand)) p.hand=p.hand?Object.values(p.hand):[]; }); if(!s.passed)s.passed={}; return s; }
+function boot(){
+  me=uid();
+  try{ firebase.initializeApp(FIREBASE_CONFIG); fdb=firebase.database(); }
+  catch(e){ $('entryMsg').textContent='Firebaseに接続できません。HTML先頭のFIREBASE_CONFIGを確認してください。'; $('btnCreate').disabled=$('btnJoin').disabled=true; return; }
+  if(FIREBASE_CONFIG.apiKey==='YOUR_API_KEY'){ $('entryMsg').textContent='FIREBASE_CONFIGが未設定です（SETUP.md参照）。'; $('btnCreate').disabled=$('btnJoin').disabled=true; }
+  refreshKeyUI();
+  let last=''; try{last=sessionStorage.getItem('tsuru.room')||'';}catch(e){}
+  if(last) fdb.ref('rooms/'+last).get().then(sn=>{ if(sn.exists()&&Object.values(sn.val().players||{}).some(p=>p.id===me)) joinRoom(last,true); else {try{sessionStorage.removeItem('tsuru.room')}catch(e){}} }).catch(()=>{});
+}
+boot();
+
+// ---------- 入室 ----------
+$('btnCreate').onclick=async()=>{
+  if(!getName())return;
+  if(!apiKey){ $('entryMsg').textContent='主催するにはAI設定でAPIキーを保存してください。'; $('keyBox').open=true; return; }
+  try{ const old=await fdb.ref('rooms').orderByChild('createdAt').endAt(now()-12*3600*1000).limitToFirst(20).get(); old.forEach(c=>{c.ref.remove();}); }catch(e){}
+  const code=String(Math.floor(1000+Math.random()*9000));
+  const s={v:1,code,hostId:me,phase:'lobby',players:[{id:me,name:myName,score:0,hand:[],mulliganed:false,passed:false}],
+    target:20,judgeModel:'haiku',condDeck:[],genreDeck:[],deck:[],discard:[],gdeck:[],gdiscard:[],round:0,log:['部屋を作成しました'],createdAt:now()};
+  await fdb.ref('rooms/'+code).set(s);
+  joinRoom(code,false);
+};
+$('btnJoin').onclick=async()=>{
+  if(!getName())return;
+  const code=$('inCode').value.trim(); if(!/^\d{4}$/.test(code)){$('entryMsg').textContent='部屋コードは4桁の数字です。';return;}
+  const snap=await fdb.ref('rooms/'+code).get();
+  if(!snap.exists()){$('entryMsg').textContent='その部屋は見つかりません。';return;}
+  const s=normalize(JSON.parse(JSON.stringify(snap.val())));
+  if(!s.players.find(p=>p.id===me)){
+    if(s.phase!=='lobby'){$('entryMsg').textContent='この部屋はすでに対局中です。';return;}
+    if(s.players.length>=8){$('entryMsg').textContent='満席です（8人まで）。';return;}
+    s.players.push({id:me,name:myName,score:0,hand:[],mulliganed:false,passed:false}); log(s,myName+' が参加');
+    await save(s,code);
+  }
+  joinRoom(code,false);
+};
+function getName(){myName=$('inName').value.trim(); if(!myName){$('entryMsg').textContent='名前を入れてください。';return false}
+  try{localStorage.setItem('tsuru.name',myName)}catch(e){} return true;}
+function joinRoom(code,silent){
+  if(unsub)unsub();
+  roomRef=fdb.ref('rooms/'+code);
+  try{sessionStorage.setItem('tsuru.room',code)}catch(e){}
+  const ref=roomRef;
+  const cb=snap=>{
+    if(!snap.exists()){leave();return;}
+    S=normalize(JSON.parse(JSON.stringify(snap.val()))); if(me&&!P(S,me)){S=null;leave();return;}
+    render();
+  };
+  ref.on('value',cb,e=>{$('entryMsg').textContent='接続が切れました（'+(e&&e.code||'error')+'）。ページを開き直してください。';});
+  unsub=()=>ref.off('value',cb);
+}
+async function save(s,code){s.v=(s.v||0)+1; s.updatedAt=now(); await fdb.ref('rooms/'+(code||s.code)).set(JSON.parse(JSON.stringify(s)));}
+function leave(){if(unsub)unsub();unsub=null;S=null;roomRef=null;try{sessionStorage.removeItem('tsuru.room')}catch(e){};show('vEntry');}
+$('btnLeave').onclick=$('btnQuit').onclick=async()=>{
+  if(S&&S.phase==='lobby'){const s=clone(); s.players=s.players.filter(p=>p.id!==me); if(s.hostId===me&&s.players[0])s.hostId=s.players[0].id;
+    if(s.players.length) await save(s); else await roomRef.remove();}
+  leave();
+};
+function clone(){return JSON.parse(JSON.stringify(S))}
+function show(v){['vEntry','vLobby','vGame','vTut'].forEach(x=>$(x).classList.toggle('hidden',x!==v))}
+
+// ---------- チュートリアル（ローカル・台本付き） ----------
+const T={};
+$('btnTut').onclick=()=>{ T.lastStep=-1; T.step=0; T.table=[]; T.hand=['丸い','空を飛ぶ','甘い']; T.score=0; T.cpu=0; T.sel=-1; T.extra=false; T.answer=''; T.ok=null; show('vTut'); tutRender(); };
+$('btnTutQuit').onclick=()=>{stopTimer();show('vEntry');};
+function tutTable(){ $('tTable').innerHTML=T.table.length?T.table.map((t,i)=>`<div class="cond"><span class="n">${i+1}</span><span>${esc(t.c)}</span><span class="by">${esc(t.by)}</span></div>`).join(''):'<div class="muted">まだ札はありません</div>'; }
+function tutHand(enabled){ $('tHand').innerHTML=T.hand.map((c,i)=>`<button class="hcard ${T.sel===i?'sel':''}" data-i="${i}" ${enabled&&enabled.includes(c)?'':'disabled'}>${esc(c)}</button>`).join('')||'<div class="muted">手札なし</div>';
+  $('tHand').querySelectorAll('.hcard').forEach(b=>b.onclick=()=>{T.sel=T.sel===+b.dataset.i?-1:+b.dataset.i;tutRender();}); }
+function tutPlayers(turn){ $('tPlayers').innerHTML=[['あなた',T.score,turn==='me'],['鶴丸（練習相手）',T.cpu,turn==='cpu']].map(([n,s,t])=>`<div class="pl ${t?'turn':''}"><span class="nm">${n}</span><span class="sc">${s}</span></div>`).join(''); }
+function tutRender(){
+  stopTimer(); const band=$('tBand'), act=$('tAct'); tutTable();
+  const st=T.step; band.classList.toggle('mine',[1,4,5].includes(st));
+  if(T.lastStep!==st){ const m={1:'myturn',2:'pass',4:'tsuru',6:'judging',7:T.ok?'ok':'ng',9:'round'}; if(m[st])sfx(m[st]); T.lastStep=st; }
+  if(st===0){ tutPlayers('cpu'); tutHand([]);
+    band.innerHTML=`<h2>まずは練習から🐦</h2><div>このゲームは、<b>場に並んだ条件をぜんぶ満たす言葉</b>をひねり出す遊び。<br>ラウンドの最初に「ジャンル」が出るけど、これは<b>おまけ</b>。合ってたら＋1点、合ってなくてもぜんぜんOK。今回は「食べ物」。</div>`;
+    act.innerHTML=`<button class="pri" id="tN">相手の鶴丸、どうぞ</button>`; $('tN').onclick=()=>{T.table.push({c:'赤い',by:'鶴丸'});T.step=1;tutRender();}; }
+  else if(st===1){ tutPlayers('me'); tutHand(['丸い']);
+    band.innerHTML=`<h2>鶴丸が「赤い」を出した</h2><div>次はあなた。札を出せるのは「<b>場の条件＋自分の札</b>」をぜんぶ満たす言葉が頭に浮かんだときだけ。<br>「赤い」＋「丸い」なら…りんご、トマト、いけそう！<b>「丸い」</b>を選んで出してみて。（今はこの1枚だけ選べます）</div>`;
+    act.innerHTML=`<button class="pri" id="tP" ${T.sel<0?'disabled':''}>この札を出す</button>`; $('tP').onclick=()=>{T.table.push({c:T.hand.splice(T.sel,1)[0],by:'あなた'});T.sel=-1;T.step=2;tutRender();}; }
+  else if(st===2){ tutPlayers('cpu'); tutHand([]);
+    band.innerHTML=`<h2>鶴丸、降りました</h2><div>「赤い・丸い」に自分の札を足しても何も浮かばなかったみたい。これが<b>パス</b>。パスしたらそのラウンドはもう札を出せない（でも「赤い」を出してるので、あとの奪い合いには参加できる）。<br><br>自分以外が全員パスしたら、<b>最後に札を出した人</b>が自動で「鶴」になる。つまりあなた！<br>（もっと札を重ねたいときは、鶴になってから1枚足せるよ）</div>`;
+    act.innerHTML=`<button class="pri" id="tN">鶴になる</button>`; $('tN').onclick=()=>{T.step=4;tutRender();}; }
+  else if(st===3){ tutPlayers('me'); tutHand([]);
+    band.innerHTML=`<h2>またあなたの番</h2><div>もっと札を重ねてもいいけど、条件が増えるほど答えが難しくなるし、外すと枚数ぶんマイナス…。<br>ここは欲張らず<b>パス</b>しよう。全員がパスした時点で、<b>最後に札を出した人</b>が「鶴」になる。つまりあなた！</div>`;
+    act.innerHTML=`<button class="pri" id="tP">パスする</button>`; $('tP').onclick=()=>{T.step=4;tutRender();}; }
+  else if(st===4){ tutPlayers('me'); tutHand(['甘い','空を飛ぶ']);
+    band.innerHTML=`<h2>あなたが鶴🐦</h2><div>答えを言う前に、<b>手札から1枚だけ追加</b>できる（しなくてもOK）。1枚足せば成功したときの点が1増えるけど、その条件も満たさないとダメ。<br>「甘い」を足して「赤い・丸い・甘い」で勝負するか、そのまま行くか。好きなほうでどうぞ。</div>`;
+    act.innerHTML=`<div class="row"><button class="sec grow" id="tE" ${T.sel<0?'disabled':''}>この札を足す</button><button class="pri grow" id="tNo">足さずに答える</button></div>`;
+    $('tE').onclick=()=>{T.table.push({c:T.hand.splice(T.sel,1)[0],by:'あなた'});T.sel=-1;T.extra=true;T.step=5;tutRender();}; $('tNo').onclick=()=>{T.step=5;tutRender();}; }
+  else if(st===5){ tutPlayers('me'); tutHand([]);
+    band.innerHTML=`<h2>鶴の一声！</h2><div class="timer" id="tm"></div><div>20秒以内に、場の条件を<b>ぜんぶ</b>満たす言葉をひとつ。<br>ちゃんと実在する言葉でね（条件をくっつけただけの「赤い丸いやつ」みたいな造語はNG）。「食べ物」ならおまけで＋1。</div>`;
+    act.innerHTML=`<form id="tF" class="row"><input id="tIn" class="grow" placeholder="答えを入力" autocomplete="off"><button class="pri" type="submit">これだ！</button></form>`;
+    $('tF').onsubmit=e=>{e.preventDefault();tutDeclare($('tIn').value,false);}; setTimeout(()=>$('tIn')&&$('tIn').focus(),50);
+    runTimer(now()+T_DECLARE*1000,()=>tutDeclare($('tIn')?$('tIn').value:'',true)); }
+  else if(st===6){ tutPlayers('me'); tutHand([]);
+    band.innerHTML=`<h2>審判AIが考え中…</h2><div class="muted">本番では主催者の端末のAIが判定します。</div>`; act.innerHTML=''; }
+  else if(st===7){ tutPlayers('me'); tutHand([]); const n=T.table.length;
+    band.innerHTML=`<div class="verdict ${T.ok?'ok':'ng'}"><div class="lbl">あなたの一声</div><div class="ans">${esc(T.answer)}</div><div><b>${T.ok?'成功！ +'+n+(T.genreOk?'　食べ物ボーナス +1':'　（食べ物じゃないけど答えはOK）'):'残念… −'+n}</b></div><div class="muted">${esc(T.reason||'')}</div></div><div style="margin-top:8px">成功なら<b>場の札の枚数</b>が点になって、ジャンルも合えば＋1。失敗は枚数ぶんマイナス（マイナス点もある世界）。<br>「それは違うだろ」と思った判定には<b>異議あり</b>で言い分を添えると、AIがもう一度考え直す（ラウンド1回まで）。</div>`;
+    act.innerHTML=`<button class="pri" id="tN">${T.ok?'次は奪い合い':'ラウンド終了へ'}</button>`; $('tN').onclick=()=>{T.step=T.ok?8:9;tutRender();}; }
+  else if(st===8){ tutPlayers('cpu'); tutHand([]);
+    band.innerHTML=`<h2>カードの奪い合い</h2><div>鶴が成功したときだけ起こるボーナスタイム。<b>このラウンドに1枚でも札を出した人</b>が、出した順の逆から、鶴と<b>違う答え</b>を言う。当たれば鶴の札を1枚もらえる。<br>途中でパスしてても札を出してれば参加OK。1枚も出せなかった人は見てるだけ。鶴丸は「赤い」を出してるから参加できる。本番ではここもAIが判定するよ。</div>`;
+    act.innerHTML=`<button class="pri" id="tN">ラウンド終了へ</button>`; $('tN').onclick=()=>{T.step=9;tutRender();}; }
+  else if(st===9){ tutPlayers(); tutHand([]);
+    band.innerHTML=`<h2>おつかれさま！</h2><div>残った札とジャンルは山に戻す。ラウンドの終わりには<b>いらない手札を選んで交換</b>できるので、固まったら遠慮なく入れ替えよう。手札を5枚に補充したら次のラウンド。先に<b>20点</b>取った人の勝ち。<br><br>ちょっとしたコツ：序盤は相性のいい札を重ねて鶴を狙う。終盤はわざと難しい札を重ねて、相手に「失敗のマイナス」を押しつけるのもアリ。<br>それじゃ、本番でお会いしましょう🐦</div>`;
+    act.innerHTML=`<button class="pri" id="tN">本番へ</button>`; $('tN').onclick=()=>{show('vEntry');}; }
+}
+async function tutDeclare(ans,timeout){
+  stopTimer(); ans=(ans||'').trim();
+  if(timeout||!ans){ T.answer=ans||'（時間切れ）'; T.ok=false; T.genreOk=false; T.reason='時間切れ…次は早めに！'; T.score-=T.table.length; T.step=7; tutRender(); return; }
+  T.answer=ans; T.step=6; tutRender();
+  let v=null;
+  if(sample){ try{ v=await sample(`あなたは言葉遊びカードゲーム「鶴の一声」の審判です。答えが日本語で実在する既存の言葉・事物であり（条件をつなげただけの造語は不可）、場の条件をすべて同時に満たすかを一般常識で判定してください。
+場の条件:
+${T.table.map((t,i)=>(i+1)+'. '+t.c).join('\n')}
+ジャンル（加点要素）: 食べ物
+答え: 「${ans}」
+JSONのみ: {"ok": true/false, "genreOk": true/false, "reason": "30字以内"}`,{model:'haiku'}); }catch(e){ v=null; } }
+  if(!v){ const good=['りんご','リンゴ','林檎','トマト','いちご','イチゴ','苺','さくらんぼ','梅干し','梅干','赤かぶ','ラディッシュ','プチトマト','ミニトマト'];
+    const ok=good.includes(ans); v={ok,genreOk:ok,reason:ok?'（AI未接続のため簡易判定）':'（AI未接続のため簡易判定。本番はAIが判定）'}; }
+  T.ok=!!v.ok; T.genreOk=!!v.genreOk; T.reason=String(v.reason||'');
+  if(T.ok){ T.score+=T.table.length+(T.genreOk?1:0); } else T.score-=T.table.length;
+  T.step=7; tutRender();
+}
+
+// ---------- ゲーム開始 ----------
+$('btnStart').onclick=async()=>{
+  const s=clone(); if(s.players.length<2){alertMsg('2人以上で開始できます。');return;}
+  s.condDeck=$('inDeck').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  s.genreDeck=$('inGenres').value.split('\n').map(x=>x.trim()).filter(Boolean);
+  if(s.condDeck.length<12||s.genreDeck.length<2){alertMsg('条件カード12枚以上、ジャンル2枚以上必要です。');return;}
+  s.target=Math.max(5,Math.min(50,parseInt($('inTarget').value)||20)); s.judgeModel=$('inModel').value;
+  s.deck=shuffle(s.condDeck.map((_,i)=>i)); s.discard=[]; s.gdeck=shuffle(s.genreDeck.map((_,i)=>i)); s.gdiscard=[];
+  s.players=shuffle(s.players); s.players.forEach(p=>{p.score=0;p.hand=[];p.mulliganed=false;});
+  s.players.forEach(p=>refill(s,p));
+  s.round=0; s.startIdx=-1; s.log=['ゲーム開始'];
+  startRound(s);
+  await save(s);
+};
+function alertMsg(m){$('lobbyWait').textContent=m;}
+function draw(s){ if(!s.deck.length){ if(!s.discard.length)return -1; s.deck=shuffle(s.discard); s.discard=[]; } return s.deck.pop(); }
+function refill(s,p){ while(p.hand.length<HAND){const c=draw(s); if(c<0)break; p.hand.push(c);} }
+function startRound(s){
+  s.players.forEach(p=>refill(s,p));
+  s.round++; s.startIdx=(s.startIdx+1)%s.players.length; s.turnIdx=s.startIdx;
+  s.table=[]; s.passed={}; s.players.forEach(p=>p.passed=false);
+  if(!s.gdeck.length){s.gdeck=shuffle(s.gdiscard);s.gdiscard=[];}
+  s.genre=s.gdeck.pop(); s.genreOnTable=true;
+  s.tsuru=null; s.answer=''; s.verdict=null; s.appeal=null; s.stealQueue=[]; s.stealIdx=0; s.stealAnswer=''; s.stealVerdict=null; s.stealResults=[]; s.tsuruGained=0; s.stealGenreTaken=false;
+  s.phase='play'; s.turnStartAt=now();
+  log(s,'第'+s.round+'ラウンド　ジャンル「'+s.genreDeck[s.genre]+'」');
+}
+function nextTurn(s){
+  const n=s.players.length; let k=0;
+  do{ s.turnIdx=(s.turnIdx+1)%n; k++; }while(s.players[s.turnIdx].passed && k<=n);
+  if(s.players.every(p=>p.passed)){ endPlay(s); return; }
+  const alive=s.players.filter(p=>!p.passed);
+  if(alive.length===1&&s.table.length&&s.table[s.table.length-1].by===alive[0].id){ log(s,'他の全員がパス'); endPlay(s); return; }
+  s.turnStartAt=now();
+}
+function endPlay(s){
+  if(!s.table.length){ log(s,'誰も札を出さなかったので流局'); roundEnd(s,true); return; }
+  s.tsuru=s.table[s.table.length-1].by; s.phase='tsuru'; s.tsuruStage='extra'; s.turnStartAt=now();
+  log(s,pname(s,s.tsuru)+' が鶴になった');
+}
+function roundEnd(s,voidRound){
+  // 残った札は山へ
+  (s.table||[]).forEach(t=>s.discard.push(t.card));
+  if(s.genreOnTable) s.gdiscard.push(s.genre);
+  s.players.forEach(p=>{p.swapped=false;});
+  const w=s.players.find(p=>p.score>=s.target);
+  if(w){ s.phase='over'; s.winner=w.id; log(s,w.name+' が'+s.target+'点に到達。勝利！'); return; }
+  s.phase='roundEnd'; s.turnStartAt=now();
+}
+
+// ---------- 手番操作 ----------
+async function playCard(idx){
+  const s=clone(); const p=s.players[s.turnIdx]; if(p.id!==me||s.phase!=='play')return;
+  const card=p.hand.splice(idx,1)[0]; s.table.push({card,by:me}); log(s,myName+'：「'+s.condDeck[card]+'」を出した');
+  nextTurn(s); await save(s);
+}
+async function pass(auto){
+  const s=clone(); const p=s.players[s.turnIdx]; if(p.id!==me||s.phase!=='play')return;
+  p.passed=true; log(s,myName+'：パス'+(auto?'（時間切れ）':'')); nextTurn(s); await save(s);
+}
+async function hostSkip(){
+  const s=clone(); if(s.hostId!==me)return;
+  if(s.phase==='play'){const p=s.players[s.turnIdx]; p.passed=true; log(s,p.name+'：主催者がスキップ'); nextTurn(s);}
+  else if(s.phase==='tsuru'){ s.answer='（時間切れ）'; s.verdict={ok:false,genreOk:false,reason:'時間切れ'}; applyVerdict(s); }
+  else if(s.phase==='steal'){ s.stealResults.push({by:s.stealQueue[s.stealIdx],answer:'（スキップ）',ok:false}); s.stealIdx++; advanceSteal(s); }
+  await save(s);
+}
+async function tsuruExtra(idx){
+  const s=clone(); if(s.tsuru!==me||s.phase!=='tsuru'||s.tsuruStage!=='extra')return;
+  const p=P(s,me);
+  if(idx>=0){const card=p.hand.splice(idx,1)[0]; s.table.push({card,by:me}); log(s,myName+'：鶴の追加札「'+s.condDeck[card]+'」');}
+  s.tsuruStage='declare'; s.turnStartAt=now(); await save(s);
+}
+async function declare(ans,timeout){
+  const s=clone(); if(s.tsuru!==me||s.phase!=='tsuru'||s.tsuruStage!=='declare')return;
+  ans=(ans||'').trim();
+  if(timeout||!ans){ s.answer=ans||'（時間切れ）'; s.verdict={ok:false,genreOk:false,reason:'時間内に宣言できなかった'}; log(s,myName+'：宣言できず'); applyVerdict(s); }
+  else { s.answer=ans; s.phase='judging'; s.judgeKey='t'+s.round+'-'+now(); log(s,myName+'の一声：「'+ans+'」'); }
+  await save(s);
+}
+function applyVerdict(s){
+  const t=P(s,s.tsuru); const n=s.table.length;
+  if(s.verdict.ok){ t.score+=n; s.tsuruGained=n; if(s.verdict.genreOk){t.score+=1; s.genreOnTable=false;}
+    log(s,t.name+'：成功 +'+n+(s.verdict.genreOk?'（ジャンル+1）':'（ジャンル未達）'));
+    // 同時解答の順番：札を出した逆順、鶴を除く
+    const seen=new Set(); const q=[];
+    for(let i=s.table.length-1;i>=0;i--){const b=s.table[i].by; if(b!==s.tsuru&&!seen.has(b)){seen.add(b);q.push(b);}}
+    s.stealQueue=q; s.stealIdx=0; s.table.forEach(x=>x.taken=true); // 鶴が獲得（奪われた分は後で戻さない。得点で処理）
+    s.phase='verdict'; s.turnStartAt=now();
+  } else { t.score-=n; log(s,t.name+'：失敗 −'+n); s.phase='verdict'; s.turnStartAt=now(); }
+}
+async function proceedAfterVerdict(){
+  const s=clone(); if(s.phase!=='verdict')return;
+  if(s.verdict.ok && s.stealQueue.length && s.tsuruGained>0){ s.phase='steal'; s.turnStartAt=now(); }
+  else roundEnd(s,false);
+  await save(s);
+}
+async function stealAnswerSubmit(ans,timeout){
+  const s=clone(); if(s.phase!=='steal'||s.stealQueue[s.stealIdx]!==me)return;
+  ans=(ans||'').trim();
+  if(timeout||!ans){ s.stealResults.push({by:me,answer:'（時間切れ）',ok:false}); log(s,myName+'：同時解答できず'); s.stealIdx++; advanceSteal(s); }
+  else if(ans===s.answer){ s.stealResults.push({by:me,answer:ans,ok:false,reason:'鶴と同じ答え'}); log(s,myName+'：鶴と同じ答えで無効'); s.stealIdx++; advanceSteal(s); }
+  else { s.stealAnswer=ans; s.phase='stealJudging'; s.judgeKey='s'+s.round+'-'+s.stealIdx+'-'+now(); log(s,myName+'の同時解答：「'+ans+'」'); }
+  await save(s);
+}
+function applyStealVerdict(s){
+  const id=s.stealQueue[s.stealIdx]; const p=P(s,id); const t=P(s,s.tsuru); const v=s.stealVerdict;
+  const r={by:id,answer:s.stealAnswer,ok:v.ok,genreOk:v.genreOk,reason:v.reason};
+  if(v.ok){ if(s.tsuruGained>0){ t.score-=1; p.score+=1; s.tsuruGained--; }
+    if(s.genreOnTable&&v.genreOk&&!s.stealGenreTaken){ p.score+=1; s.genreOnTable=false; s.stealGenreTaken=true; r.gotGenre=true; }
+    log(s,p.name+'：成功、札を1枚奪取'+(r.gotGenre?'（ジャンル+1）':'')); }
+  else log(s,p.name+'：不成立（'+(v.reason||'')+'）');
+  s.stealResults.push(r); s.stealIdx++; s.phase='stealVerdict'; s.turnStartAt=now();
+}
+function advanceSteal(s){
+  if(s.stealIdx>=s.stealQueue.length||s.tsuruGained<=0){ roundEnd(s,false); }
+  else { s.phase='steal'; s.turnStartAt=now(); }
+}
+async function proceedAfterSteal(){ const s=clone(); if(s.phase!=='stealVerdict')return; advanceSteal(s); await save(s); }
+async function swapCards(idxs){
+  const s=clone(); const p=P(s,me); if(s.phase!=='roundEnd'||p.swapped||!idxs.length)return;
+  const keep=[]; p.hand.forEach((c,i)=>{ if(idxs.includes(i)) s.discard.push(c); else keep.push(c); });
+  p.hand=keep; refill(s,p); p.swapped=true; log(s,myName+'：手札を'+idxs.length+'枚交換'); await save(s);
+}
+let swapSel=new Set();
+async function nextRound(){ const s=clone(); if(s.phase!=='roundEnd'||s.hostId!==me)return; startRound(s); await save(s); }
+async function mulligan(){
+  const s=clone(); const p=P(s,me); if(p.mulliganed||s.round!==1||s.phase!=='play'||s.table.length)return;
+  p.hand.forEach(c=>s.discard.push(c)); p.hand=[]; refill(s,p); p.mulliganed=true; log(s,myName+'：手札を引き直した'); await save(s);
+}
+async function appeal(text){
+  const s=clone(); if(!['verdict','stealVerdict'].includes(s.phase)||s.appealUsed)return;
+  s.appeal={by:me,text:(text||'').trim()||'条件を満たしていないと思う'}; s.appealUsed=true;
+  // 得点を一旦巻き戻してから再判定
+  if(s.phase==='verdict'){ const t=P(s,s.tsuru); const n=s.table.length; if(s.verdict.ok){t.score-=n; if(s.verdict.genreOk){t.score-=1;s.genreOnTable=true;} s.table.forEach(x=>delete x.taken);} else t.score+=n;
+    s.tsuruGained=0; s.stealQueue=[]; s.phase='judging'; s.judgeKey='a'+s.round+'-'+now(); }
+  else { const r=s.stealResults.pop(); const p=P(s,r.by); const t=P(s,s.tsuru); if(r.ok){p.score-=1;t.score+=1;s.tsuruGained++; if(r.gotGenre){p.score-=1;s.genreOnTable=true;s.stealGenreTaken=false;}}
+    s.stealIdx--; s.stealAnswer=r.answer; s.phase='stealJudging'; s.judgeKey='b'+s.round+'-'+s.stealIdx+'-'+now(); }
+  log(s,myName+'：異議あり「'+s.appeal.text+'」→ 再判定'); await save(s);
+}
+
+// ---------- AI対戦相手（主催者端末のみ） ----------
+const CPU_NAMES=['鶴丸','雁金','千鳥','鷺','鴨','燕','雀'];
+$('btnAddCpu').onclick=async()=>{ const s=clone(); if(s.players.length>=8)return;
+  const n=s.players.filter(p=>p.cpu).length; const id='cpu'+(n+1)+'-'+now().toString(36);
+  s.players.push({id,name:CPU_NAMES[n%CPU_NAMES.length]+'（AI）',score:0,hand:[],mulliganed:true,passed:false,cpu:true}); await save(s); };
+$('btnRemoveCpu').onclick=async()=>{ const s=clone(); const i=s.players.map(p=>p.cpu).lastIndexOf(true); if(i<0)return; s.players.splice(i,1); await save(s); };
+let cpuKey='';
+function tableText(s){return s.table.map((t,i)=>(i+1)+'. '+s.condDeck[t.card]).join('\n')||'（まだ無し）';}
+function handText(s,p){return p.hand.map((c,i)=>i+': '+s.condDeck[c]).join('\n');}
+async function ask(prompt){ try{ return await sample(prompt,{model:'haiku'}); }catch(e){ console.warn(e); return null; } }
+async function maybeCpu(){
+  if(!S||S.hostId!==me||!sample)return;
+  let actor=null;
+  if(S.phase==='play')actor=S.players[S.turnIdx];
+  else if(S.phase==='tsuru')actor=P(S,S.tsuru);
+  else if(S.phase==='steal')actor=P(S,S.stealQueue[S.stealIdx]);
+  if(!actor||!actor.cpu)return;
+  const key=S.phase+':'+S.v; if(cpuKey===key)return; cpuKey=key;
+  const genre=S.genreDeck[S.genre];
+  if(S.phase==='play'){
+    const r=await ask(`あなたは言葉遊びカードゲームのプレイヤーです。場の条件カードをすべて同時に満たす言葉が存在するときだけ、手札から1枚を場に追加できます。追加後の条件（場＋その札）をすべて満たす言葉を自分で1つ思いつける札だけ選んでください。確実な札が無ければパスしてください。
+言葉は必ず実在する既存の言葉・事物・固有名詞にしてください。条件に合わせて単語をつなげた造語（「氷のくす玉」のようなもの）は不正解になります。
+場の条件:
+${tableText(S)}
+ジャンル（加点要素、必須ではない）: ${genre}
+手札:
+${handText(S,actor)}
+JSONのみで回答: {"play": 手札の番号（数値）またはnull, "word": "その札を足しても全条件を満たす言葉", "why": "15字以内"}`);
+    if(!S||S.phase+':'+S.v!==key)return;
+    const s=clone(); const p=s.players[s.turnIdx];
+    const idx=r&&r.play!==null&&r.play!==undefined?parseInt(r.play):-1;
+    if(idx>=0&&idx<p.hand.length){ const card=p.hand.splice(idx,1)[0]; s.table.push({card,by:p.id}); log(s,p.name+'：「'+s.condDeck[card]+'」を出した'); p.lastWord=String(r.word||''); }
+    else { p.passed=true; log(s,p.name+'：パス'); }
+    nextTurn(s); await save(s);
+  }
+  else if(S.phase==='tsuru'){
+    const r=await ask(`あなたは言葉遊びカードゲーム「鶴の一声」の鶴です。場の条件をすべて同時に満たす言葉を1つ宣言してください。言葉は必ず実在する既存の言葉・事物・固有名詞にしてください。単語をつなげただけの造語は不正解です。宣言前に手札から1枚だけ条件を追加でき、追加すると得点が1増えますが、追加後も全条件を満たす言葉が必要です。自信がある場合だけ追加してください。
+場の条件:
+${tableText(S)}
+ジャンル（答えがこれに当てはまれば+1点）: ${genre}
+手札:
+${handText(S,actor)}
+あなたが前に考えていた候補: ${actor.lastWord||'なし'}
+JSONのみで回答: {"extra": 追加する手札の番号（数値）またはnull, "answer": "宣言する言葉"}`);
+    if(!S||S.phase+':'+S.v!==key)return;
+    const s=clone(); const p=P(s,s.tsuru);
+    const idx=r&&r.extra!==null&&r.extra!==undefined?parseInt(r.extra):-1;
+    if(idx>=0&&idx<p.hand.length){ const card=p.hand.splice(idx,1)[0]; s.table.push({card,by:p.id}); log(s,p.name+'：鶴の追加札「'+s.condDeck[card]+'」'); }
+    const ans=r&&String(r.answer||'').trim();
+    if(!ans){ s.answer='（宣言できず）'; s.verdict={ok:false,genreOk:false,reason:'AIが答えを出せなかった'}; log(s,p.name+'：宣言できず'); applyVerdict(s); }
+    else { s.answer=ans; s.phase='judging'; s.judgeKey='t'+s.round+'-'+now(); log(s,p.name+'の一声：「'+ans+'」'); }
+    await save(s);
+  }
+  else if(S.phase==='steal'){
+    const r=await ask(`あなたは言葉遊びカードゲームのプレイヤーです。場の条件をすべて同時に満たす言葉を、禁止された答えとは別に1つ答えてください。実在する既存の言葉・事物・固有名詞に限ります（造語は不正解）。思いつかなければnull。
+場の条件:
+${tableText(S)}
+ジャンル（答えがこれに当てはまれば+1点）: ${genre}
+禁止された答え: 「${S.answer}」
+JSONのみで回答: {"answer": "別の言葉" またはnull}`);
+    if(!S||S.phase+':'+S.v!==key)return;
+    const s=clone(); const p=P(s,s.stealQueue[s.stealIdx]);
+    const ans=r&&r.answer?String(r.answer).trim():'';
+    if(!ans||ans===s.answer){ s.stealResults.push({by:p.id,answer:'（解答なし）',ok:false}); log(s,p.name+'：同時解答なし'); s.stealIdx++; advanceSteal(s); }
+    else { s.stealAnswer=ans; s.phase='stealJudging'; s.judgeKey='s'+s.round+'-'+s.stealIdx+'-'+now(); log(s,p.name+'の同時解答：「'+ans+'」'); }
+    await save(s);
+  }
+}
+
+// ---------- AI判定（主催者端末のみ） ----------
+async function maybeJudge(){
+  if(!S||S.hostId!==me||!sample)return;
+  if(!['judging','stealJudging'].includes(S.phase))return;
+  if(judgingKey===S.judgeKey)return; judgingKey=S.judgeKey;
+  const isSteal=S.phase==='stealJudging'; const ans=isSteal?S.stealAnswer:S.answer;
+  const conds=S.table.map((t,i)=>(i+1)+'. '+S.condDeck[t.card]).join('\n');
+  const genre=S.genreDeck[S.genre];
+  const prompt=`あなたは言葉遊びカードゲーム「鶴の一声」の審判です。プレイヤーは「場の条件カードをすべて同時に満たす言葉」を宣言します。答えは名詞・動作・概念・イベントなど何でも可。一般常識に基づき、普通の人の多数決がどう判断するかを想定して判定してください。無理筋のこじつけは不可、ただし常識的な解釈で成り立つ連想は可とします。
+
+最初に「実在性」を確認してください。答えは、日本語で一般に通用する既存の言葉・事物・固有名詞・慣用的な複合語（例: アイスケーキ、雪だるま）である必要があります。条件に合わせて単語をつなぎ合わせただけの造語（例: 「氷のくす玉」「光る赤い傘」のような、実際には物や言葉として定着していないもの）は、全条件を満たしていても不正解です。「〜の〜」「形容詞＋名詞」の形は特に造語の疑いが強いので、それ自体が一つの定着した名称かどうか厳しく確認してください。
+
+場の条件（すべて満たす必要あり）:
+${conds}
+
+ジャンルカード（得点の加点条件。満たさなくても本判定には影響しない）: ${genre}
+
+宣言された答え: 「${ans}」
+${S.appeal?`\n※他プレイヤーから異議: 「${S.appeal.text}」。この指摘も踏まえて改めて判定してください。`:''}
+
+次のJSONのみを返してください（説明文は不要）:
+{"exists": true/false, "ok": true/false, "genreOk": true/false, "reason": "40字以内の判定理由（造語なら『造語』と明記、満たさない条件があれば番号を挙げる）"}
+existsがfalseならokも必ずfalseにしてください。`;
+  const key=S.judgeKey; let v;
+  try{ v=await sample(prompt,{model:S.judgeModel}); }
+  catch(e){ v={ok:false,genreOk:false,reason:'AI判定に失敗（'+(e.code||'error')+'）。異議で再判定できます'}; }
+  if(!S||S.judgeKey!==key)return;
+  const s=clone(); if(!['judging','stealJudging'].includes(s.phase))return;
+  const vv={ok:!!v.ok,genreOk:!!v.genreOk,reason:String(v.reason||'').slice(0,80)};
+  if(isSteal){ s.stealVerdict=vv; applyStealVerdict(s); } else { s.verdict=vv; applyVerdict(s); }
+  s.appeal=null; await save(s);
+}
+
+// ---------- 描画 ----------
+function render(){
+  if(!S){show('vEntry');return;}
+  maybeJudge(); maybeCpu();
+  const isHost=S.hostId===me;
+  $('topRight').textContent='部屋 '+S.code+(isHost?'　主催':'');
+  if(S.phase==='lobby'){
+    lastSig='';lastTable=0;lastTurnMine=false;stopFlash();
+    show('vLobby'); $('lobbyCode').textContent=S.code;
+    $('lobbyPlayers').innerHTML=S.players.map(p=>`<div class="pl ${p.id===me?'me':''}"><span class="nm">${esc(p.name)}</span>${p.cpu?'<span class="tag">AI</span>':''}${p.id===S.hostId?'<span class="tag host">主催</span>':''}</div>`).join('');
+    $('hostCtl').classList.toggle('hidden',!isHost); $('lobbyWait').classList.toggle('hidden',isHost);
+    if(!isHost)$('lobbyWait').textContent='主催者の開始を待っています…';
+    return;
+  }
+  show('vGame'); cue();
+  $('rnd').textContent=S.round;
+  const g=$('genreBox'); g.textContent=S.genreDeck[S.genre]+(S.genreOnTable?'':'（獲得済）'); g.classList.toggle('gone',!S.genreOnTable);
+  $('tableBox').innerHTML=S.table.length?S.table.map((t,i)=>`<div class="cond"><span class="n">${i+1}</span><span>${esc(S.condDeck[t.card])}</span><span class="by">${esc(pname(S,t.by))}</span></div>`).join(''):'<div class="muted">まだ札はありません</div>';
+  $('deckInfo').textContent='山札 '+S.deck.length+'　捨て札 '+S.discard.length;
+  const meP=P(S,me);
+  const stealPhase=['verdict','steal','stealJudging','stealVerdict'].includes(S.phase)&&S.verdict&&S.verdict.ok&&(S.stealQueue||[]).length;
+  $('gamePlayers').innerHTML=S.players.map((p,i)=>{
+    const turn=S.phase==='play'&&i===S.turnIdx; const tsuru=S.tsuru===p.id&&S.phase!=='play';
+    let ord='';
+    if(stealPhase){ const k=S.stealQueue.indexOf(p.id);
+      if(k>=0){ const r=S.stealResults.find(x=>x.by===p.id);
+        if(r) ord=`<span class="tag ${r.ok?'done':'ng2'}">${k+1}番 ${r.ok?'奪取':'×'}</span>`;
+        else if(k===S.stealIdx&&['steal','stealJudging'].includes(S.phase)) ord=`<span class="tag ord now">${k+1}番 解答中</span>`;
+        else ord=`<span class="tag ord">${k+1}番</span>`; }
+      else if(!tsuru) ord=`<span class="tag">不参加</span>`; }
+    const nowSteal=stealPhase&&['steal','stealJudging'].includes(S.phase)&&S.stealQueue[S.stealIdx]===p.id;
+    return `<div class="pl ${p.id===me?'me':''} ${turn?'turn':''} ${nowSteal?'stealnow':''}"><span class="nm">${esc(p.name)}</span>${p.cpu?'<span class="tag">AI</span>':''}${p.id===S.hostId?'<span class="tag host">主催</span>':''}${tsuru?'<span class="tag tsuru">鶴</span>':''}${S.phase==='play'&&p.passed?'<span class="tag">パス</span>':''}${ord}<span class="sc">${p.score}</span></div>`}).join('');
+  $('logBox').innerHTML=(S.log||[]).slice().reverse().map(x=>`<div>${esc(x)}</div>`).join('');
+  $('btnHostSkip').classList.toggle('hidden',!(isHost&&['play','tsuru','steal'].includes(S.phase)));
+
+  const band=$('band'), act=$('actBox'), vb=$('verdictBox'); vb.innerHTML=''; act.innerHTML=''; band.classList.remove('mine');
+  const cur=S.players[S.turnIdx];
+  const myTurnPlay=S.phase==='play'&&cur.id===me;
+  const swapMode=S.phase==='roundEnd'&&!meP.swapped;
+  const handClickable=myTurnPlay||(S.phase==='tsuru'&&S.tsuruStage==='extra'&&S.tsuru===me)||swapMode;
+  if(!swapMode)swapSel.clear();
+  $('handBox').innerHTML=(meP.hand||[]).map((c,i)=>`<button class="hcard ${(swapMode?swapSel.has(i):selCard===i)?'sel':''}" data-i="${i}" ${handClickable?'':'disabled'}>${esc(S.condDeck[c])}</button>`).join('')||'<div class="muted">手札なし</div>';
+  $('handBox').querySelectorAll('.hcard').forEach(b=>b.onclick=()=>{const i=+b.dataset.i; if(swapMode){swapSel.has(i)?swapSel.delete(i):swapSel.add(i);} else selCard=selCard===i?-1:i; render();});
+  stopTimer();
+  const canAppeal=!S.appealUsed;
+  if(S.phase==='play'){
+    const deadline=S.turnStartAt+T_PLAY*1000;
+    band.classList.toggle('mine',myTurnPlay);
+    band.innerHTML=`<h2>${myTurnPlay?'🔴 あなたの手番！':esc(cur.name)+' の手番'}</h2><div class="timer" id="tm"></div><div class="muted">場の条件すべて＋出す札を満たす言葉が20秒以内に浮かぶときだけ出せる</div>`;
+    runTimer(deadline,()=>{ if(myTurnPlay)pass(true); });
+    if(myTurnPlay){
+      act.innerHTML=`<div class="row"><button class="pri grow" id="bPlay" ${selCard<0?'disabled':''}>選んだ札を出す</button><button class="grow" id="bPass">パス</button></div>`+
+        (S.round===1&&!meP.mulliganed&&!S.table.length?`<button id="bMul">手札を全部引き直す（1回だけ）</button>`:'');
+      $('bPlay').onclick=()=>{const i=selCard;selCard=-1;playCard(i);}; $('bPass').onclick=()=>pass(false);
+      if($('bMul'))$('bMul').onclick=mulligan;
+    } else act.innerHTML=`<div class="muted">${meP.passed?'あなたはパス済み。':'手番を待っています。'}自分が出せそうな言葉を考えておこう。</div>`;
+  }
+  else if(S.phase==='tsuru'){
+    const mine=S.tsuru===me; band.classList.toggle('mine',mine);
+    if(S.tsuruStage==='extra'){
+      band.innerHTML=`<h2>${mine?'あなたが鶴':esc(pname(S,S.tsuru))+' が鶴'}</h2><div class="muted">一声の前に、手札から1枚だけ追加できる（任意）</div>`;
+      if(mine) act.innerHTML=`<div class="row"><button class="sec grow" id="bExtra" ${selCard<0?'disabled':''}>選んだ札を追加する</button><button class="pri grow" id="bNoExtra">追加せず宣言へ</button></div>`;
+      if(mine){$('bExtra').onclick=()=>{const i=selCard;selCard=-1;tsuruExtra(i);}; $('bNoExtra').onclick=()=>tsuruExtra(-1);}
+    } else {
+      const deadline=S.turnStartAt+T_DECLARE*1000;
+      band.innerHTML=`<h2>鶴の一声</h2><div class="timer" id="tm"></div><div class="muted">${mine?'場の条件をすべて満たす言葉を1つ':esc(pname(S,S.tsuru))+' が宣言中'}</div>`;
+      runTimer(deadline,()=>{ if(mine)declare($('inAns')?$('inAns').value:'',true); });
+      if(mine){ act.innerHTML=`<form id="fAns" class="row"><input id="inAns" class="grow" placeholder="答え" autocomplete="off"><button class="pri" type="submit">宣言</button></form>`;
+        $('fAns').onsubmit=e=>{e.preventDefault();declare($('inAns').value,false);}; setTimeout(()=>$('inAns')&&$('inAns').focus(),50); }
+    }
+  }
+  else if(S.phase==='judging'||S.phase==='stealJudging'){
+    const ans=S.phase==='judging'?S.answer:S.stealAnswer;
+    band.innerHTML=`<h2>AI判定中…</h2><div class="muted">「${esc(ans)}」を審査しています${isHost?'（この端末で判定を実行中）':''}</div>`+(S.phase==='stealJudging'?orderStrip():'');
+    if(isHost&&!sample) act.innerHTML=`<div class="muted">APIキーが未設定のためAI判定ができません。右上の⚙から設定してください。</div>`;
+  }
+  else if(S.phase==='verdict'){
+    const v=S.verdict; const n=S.table.length;
+    vb.innerHTML=`<div class="verdict ${v.ok?'ok':'ng'}"><div class="lbl">${esc(pname(S,S.tsuru))} の一声</div><div class="ans">${esc(S.answer)}</div><div><b>${v.ok?'成功 +'+n+(v.genreOk?'　ジャンル +1':'　ジャンル未達'):'失敗 −'+n}</b></div><div class="muted">${esc(v.reason||'')}</div></div>`;
+    band.innerHTML=`<h2>判定</h2>`+(v.ok&&S.stealQueue.length?`<div>このあと同時解答（札を出した逆順）</div>${orderStrip()}`:'');
+    act.innerHTML=(isHost?`<button class="pri" id="bNext">${v.ok&&S.stealQueue.length?'同時解答へ':'ラウンド終了へ'}</button>`:`<div class="muted">主催者が進行します</div>`)+
+      (canAppeal?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:`<div class="muted">このラウンドの異議は使用済み</div>`);
+    if(isHost)$('bNext').onclick=proceedAfterVerdict;
+    if($('fAp'))$('fAp').onsubmit=e=>{e.preventDefault();appeal($('inAp').value);};
+  }
+  else if(S.phase==='steal'){
+    const who=S.stealQueue[S.stealIdx]; const mine=who===me; const deadline=S.turnStartAt+T_STEAL*1000; band.classList.toggle('mine',mine);
+    band.innerHTML=`<h2>同時解答 ${S.stealIdx+1}/${S.stealQueue.length}：${mine?'あなたの番！':esc(pname(S,who))}</h2><div class="timer" id="tm"></div>${orderStrip()}<div class="muted">${mine?'鶴と違う答えで、場の条件すべてを満たす言葉を':esc(pname(S,who))+' が解答中'}　（鶴の答え「${esc(S.answer)}」は禁止／奪える札 残り${S.tsuruGained}）</div>`;
+    runTimer(deadline,()=>{ if(mine)stealAnswerSubmit($('inSt')?$('inSt').value:'',true); });
+    if(mine){ act.innerHTML=`<form id="fSt" class="row"><input id="inSt" class="grow" placeholder="別の答え" autocomplete="off"><button class="pri" type="submit">解答</button></form>`;
+      $('fSt').onsubmit=e=>{e.preventDefault();stealAnswerSubmit($('inSt').value,false);}; setTimeout(()=>$('inSt')&&$('inSt').focus(),50); }
+  }
+  else if(S.phase==='stealVerdict'){
+    const r=S.stealResults[S.stealResults.length-1];
+    vb.innerHTML=`<div class="verdict ${r.ok?'ok':'ng'}"><div class="lbl">${esc(pname(S,r.by))} の同時解答</div><div class="ans">${esc(r.answer)}</div><div><b>${r.ok?'成功　札を1枚奪取'+(r.gotGenre?'　ジャンル +1':''):'不成立'}</b></div><div class="muted">${esc(r.reason||'')}</div></div>`;
+    band.innerHTML=`<h2>判定</h2>${orderStrip()}`+(S.stealIdx<S.stealQueue.length&&S.tsuruGained>0?`<div class="muted">次は ${esc(pname(S,S.stealQueue[S.stealIdx]))}</div>`:'<div class="muted">同時解答はここまで</div>');
+    act.innerHTML=(isHost?`<button class="pri" id="bNext2">次へ</button>`:`<div class="muted">主催者が進行します</div>`)+
+      (canAppeal?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:'');
+    if(isHost)$('bNext2').onclick=proceedAfterSteal;
+    if($('fAp'))$('fAp').onsubmit=e=>{e.preventDefault();appeal($('inAp').value);};
+  }
+  else if(S.phase==='roundEnd'){
+    band.classList.toggle('mine',swapMode);
+    band.innerHTML=`<h2>第${S.round}ラウンド終了</h2><div>${swapMode?'いらない札を選んで交換できる（このラウンド1回）。交換しなくてもOK。次のラウンド開始時に5枚まで補充。':meP.swapped?'交換済み。次のラウンド開始時に5枚まで補充。':'次のラウンド開始時に手札を5枚まで補充。'}</div>`;
+    const waiting=S.players.filter(p=>!p.cpu&&!p.swapped).map(p=>p.name);
+    act.innerHTML=(swapMode?`<div class="row"><button class="sec grow" id="bSwap" ${swapSel.size?'':'disabled'}>選んだ${swapSel.size}枚を交換</button><button class="grow" id="bNoSwap">交換しない</button></div>`:'')+
+      (isHost?`<button class="pri" id="bRound">次のラウンドへ</button>${waiting.length?`<div class="muted">交換を迷い中：${esc(waiting.join('、'))}</div>`:''}`:`<div class="muted">主催者が次のラウンドを始めます</div>`);
+    if(swapMode){$('bSwap').onclick=()=>{const idx=[...swapSel];swapSel.clear();swapCards(idx);}; $('bNoSwap').onclick=async()=>{const s=clone();P(s,me).swapped=true;await save(s);};}
+    if(isHost)$('bRound').onclick=nextRound;
+  }
+  else if(S.phase==='over'){
+    band.innerHTML=`<h2>${esc(pname(S,S.winner))} の勝利！</h2><div class="muted">${S.target}点に到達</div>`;
+    act.innerHTML=isHost?`<button class="pri" id="bAgain">同じメンバーでもう一局（ロビーへ）</button>`:'<div class="muted">お疲れさまでした</div>';
+    if(isHost)$('bAgain').onclick=async()=>{const s=clone();s.phase='lobby';s.round=0;s.players.forEach(p=>{p.score=0;p.hand=[]});s.log=['再戦'];await save(s);};
+  }
+}
+function orderStrip(){
+  const q=S.stealQueue||[]; if(!q.length)return '';
+  return `<div class="order"><span class="muted">順番：</span>`+q.map((id,k)=>{const r=S.stealResults.find(x=>x.by===id); const cls=r?'done':(k===S.stealIdx&&['steal','stealJudging'].includes(S.phase)?'now':'');
+    return `<span class="st ${cls}">${k+1}. ${esc(pname(S,id))}${r?(r.ok?' ✓':' ×'):''}</span>`+(k<q.length-1?'<span class="arrow">→</span>':'');}).join('')+`</div>`;
+}
+function runTimer(deadline,onEnd){
+  const el=$('tm'); if(!el)return; let fired=false;
+  const mineNow=lastTurnMine||!S;
+  const tick=()=>{const r=Math.max(0,Math.ceil((deadline-now())/1000)); el.textContent=r; el.classList.toggle('hurry',r<=5);
+    if(mineNow&&r>0&&r!==hurryLast){hurryLast=r;sfx(r<=5?'hurry':'cd');}
+    if(r<=0&&!fired){fired=true;stopTimer();onEnd();}};
+  tick(); timerIv=setInterval(tick,250);
+}
+function stopTimer(){if(timerIv){clearInterval(timerIv);timerIv=null;} hurryLast=-1;}
+$('btnHostSkip').onclick=hostSkip;
+</script>
+</body>
+</html>
