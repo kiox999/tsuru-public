@@ -896,17 +896,23 @@ async function maybeCpu(){
   const key=S.phase+':'+S.v; if(cpuKey===key)return; cpuKey=key;
   const genre=S.genreDeck[S.genre];
   if(S.phase==='play'){
-    const r=await ask(`あなたは言葉遊びカードゲームのプレイヤーです。場の条件カードをすべて同時に満たす言葉が存在するときだけ、手札から1枚を場に追加できます。追加後の条件（場＋その札）をすべて満たす言葉を自分で1つ思いつける札だけ選んでください。確実な札が無ければパスしてください。
-言葉は必ず実在する既存の言葉・事物・固有名詞にしてください。条件に合わせて単語をつなげた造語（「氷のくす玉」のようなもの）は不正解になります。
+    const nTable=S.table.length;
+    const r=await ask(`あなたは言葉遊びカードゲームのプレイヤーです。手札から1枚を場に出して条件を増やします。出した後の条件（場の条件すべて＋その札）を同時に満たす、実在する言葉を1つ思いつける札を選んでください。
+方針：
+- 場の条件は今${nTable}枚。${nTable===0?'場が空なので必ず1枚出す（どの札でも何か言葉はある）。':nTable<=2?'条件が少ないので、言葉が1つでも思いつけば積極的に出す。':'条件が多いので、全部を満たす言葉を本当に思いつけるときだけ出し、無ければパス。'}
+- 複数の札で言葉が思いつくなら、最も一般的な言葉が見つかる札を選ぶ。
+- 言葉は実在する既存の言葉・事物・固有名詞に限る。単語をつなげただけの造語（「氷のくす玉」など）は不可。
 場の条件:
 ${tableText(S)}
 ジャンル（加点要素、必須ではない）: ${genre}
 手札:
 ${handText(S,actor)}
-JSONのみで回答: {"play": 手札の番号（数値）またはnull, "word": "その札を足しても全条件を満たす言葉", "why": "15字以内"}`);
+JSONのみで回答: {"play": 手札の番号（0始まりの数値）またはnull, "word": "その札を足しても全条件を満たす言葉", "why": "15字以内"}`);
     if(!S||S.phase+':'+S.v!==key)return;
     const s=clone(); const p=s.players[s.turnIdx];
-    const idx=r&&r.play!==null&&r.play!==undefined?parseInt(r.play):-1;
+    let idx=-1;
+    if(r&&r.play!==null&&r.play!==undefined&&r.play!==''){ idx=parseInt(r.play); if(isNaN(idx)) idx=p.hand.findIndex(c=>s.condDeck[c]===String(r.play)); }
+    if((idx<0||idx>=p.hand.length)&&nTable===0&&p.hand.length){ idx=Math.floor(Math.random()*p.hand.length); }
     if(idx>=0&&idx<p.hand.length){ const card=p.hand.splice(idx,1)[0]; s.table.push({card,by:p.id}); log(s,p.name+'：「'+s.condDeck[card]+'」を出した'); p.lastWord=String(r.word||''); }
     else { p.passed=true; log(s,p.name+'：パス'+(aiErr?'（AIエラー：'+aiErr+'）':'')); }
     nextTurn(s); await save(s);
