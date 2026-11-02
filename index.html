@@ -19,10 +19,10 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v3.2";
+const APP_VER = "v3.5";
 // =====================================================================
 </script>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
 <style>
 [hidden]{display:none!important}
 img{max-width:100%}
@@ -46,7 +46,7 @@ img{max-width:100%}
   --ok:#6fcf97; --ok-soft:#1f3b2b; --ng:#ff7a70; --ng-soft:#4a2624; --wave:rgba(143,176,236,.10); color-scheme:dark}
 *{box-sizing:border-box}
 html,body{height:100%}
-body{margin:0;color:var(--ink);font-family:var(--body);font-weight:500;font-size:15px;line-height:1.6;
+body{margin:0;color:var(--ink);font-family:var(--body);font-weight:500;font-size:1em;line-height:1.6;
   background:var(--bg);
   background-image:
     radial-gradient(circle at 50% 110%, transparent 54px, var(--wave) 55px, var(--wave) 58px, transparent 59px),
@@ -67,23 +67,23 @@ input,textarea,select{font:inherit;border:2px solid var(--line);background:var(-
 textarea{min-height:120px;resize:vertical}
 .wrap{max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
 .top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-.top h1{font-size:34px;letter-spacing:.08em;color:var(--shu);text-shadow:3px 3px 0 var(--kin-soft);display:flex;align-items:center;gap:10px}
+.top h1{font-size:2.27em;letter-spacing:.08em;color:var(--shu);text-shadow:3px 3px 0 var(--kin-soft);display:flex;align-items:center;gap:10px}
 .top h1::before{content:"";width:34px;height:34px;border-radius:50%;background:var(--shu);box-shadow:inset 0 0 0 5px var(--panel),inset 0 0 0 8px var(--shu);flex:none}
-.top .sub{color:var(--mute);font-size:11px;letter-spacing:.3em;font-weight:700}
+.top .sub{color:var(--mute);font-size:0.73em;letter-spacing:.3em;font-weight:700}
 .card{background:var(--panel);border:2px solid var(--ink);border-radius:18px;padding:16px;display:flex;flex-direction:column;gap:10px;min-width:0;box-shadow:5px 5px 0 var(--kin-soft)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .row>*{min-width:0}
 .grow{flex:1 1 160px}
-.lbl{font-size:11px;letter-spacing:.2em;color:var(--mute);font-weight:900}
+.lbl{font-size:0.73em;letter-spacing:.2em;color:var(--mute);font-weight:900}
 .lbl::before{content:"◆ ";color:var(--kin)}
-.code{font-family:var(--disp);font-size:34px;letter-spacing:.3em;color:var(--ai)}
-.muted{color:var(--mute);font-size:13px}
+.code{font-family:var(--disp);font-size:2.27em;letter-spacing:.3em;color:var(--ai)}
+.muted{color:var(--mute);font-size:0.87em}
 .hidden{display:none!important}
 /* 場の札 */
 .table{display:flex;flex-direction:column;gap:8px}
 .cond{display:flex;align-items:center;gap:12px;padding:10px 14px;border:2px solid var(--ink);border-radius:12px;background:var(--bg2);position:relative;font-weight:700}
-.cond .n{font-family:var(--disp);color:#fff;background:var(--shu);border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-size:14px;flex:none;border:2px solid var(--ink)}
-.cond .by{margin-left:auto;font-size:12px;color:var(--mute);white-space:nowrap;font-weight:500}
+.cond .n{font-family:var(--disp);color:#fff;background:var(--shu);border-radius:50%;width:30px;height:30px;display:grid;place-items:center;font-size:0.93em;flex:none;border:2px solid var(--ink)}
+.cond .by{margin-left:auto;font-size:0.8em;color:var(--mute);white-space:nowrap;font-weight:500}
 .genre{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border-radius:999px;background:var(--ai);color:#fff;font-weight:900;border:2px solid var(--ink);box-shadow:2px 2px 0 var(--ink)}
 .genre.gone{opacity:.45;text-decoration:line-through;box-shadow:none}
 /* 手札 */
@@ -97,8 +97,8 @@ textarea{min-height:120px;resize:vertical}
 .pl.me{background:var(--bg2);border-color:var(--line)}
 .pl.turn{border-color:var(--shu);background:var(--shu-soft)}
 .pl .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
-.pl .sc{font-family:var(--disp);font-size:20px;min-width:2.5em;text-align:right;color:var(--ai)}
-.tag{font-size:11px;padding:2px 9px;border-radius:999px;border:2px solid var(--line);color:var(--mute);white-space:nowrap;font-weight:900}
+.pl .sc{font-family:var(--disp);font-size:1.33em;min-width:2.5em;text-align:right;color:var(--ai)}
+.tag{font-size:0.73em;padding:2px 9px;border-radius:999px;border:2px solid var(--line);color:var(--mute);white-space:nowrap;font-weight:900}
 .tag.tsuru{background:var(--shu);color:#fff;border-color:var(--ink)}
 .tag.host{background:var(--kin);color:var(--ink);border-color:var(--ink)}
 .tag.ord{background:var(--ai);color:#fff;border-color:var(--ink)}
@@ -106,26 +106,36 @@ textarea{min-height:120px;resize:vertical}
 .tag.done{background:var(--ok-soft);color:var(--ok);border-color:var(--ok)}
 .tag.ng2{background:var(--ng-soft);color:var(--ng);border-color:var(--ng)}
 .pl.stealnow{border-color:var(--shu);background:var(--shu-soft)}
-.order{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
+.order{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:0.87em}
 .order .st{display:inline-flex;align-items:center;gap:4px;padding:4px 10px;border-radius:999px;border:2px solid var(--line);background:var(--panel);font-weight:700}
 .order .st.now{border-color:var(--shu);background:var(--shu-soft);color:var(--shu)}
 .order .st.done{opacity:.6}
 .order .arrow{color:var(--mute)}
 /* 状態帯 */
 .band{padding:14px 16px;border-radius:18px;background:var(--panel);border:2px solid var(--ink);color:var(--ink);display:flex;flex-direction:column;gap:6px;box-shadow:5px 5px 0 var(--ai-soft)}
-.band h2{font-size:20px;color:var(--ai)}
+.band h2{font-size:1.33em;color:var(--ai)}
 .band.mine{background:var(--shu-soft);border-color:var(--shu);box-shadow:5px 5px 0 var(--shu)}
 .band.mine h2{color:var(--shu)}
-.timer{font-family:var(--disp);font-size:44px;line-height:1;color:var(--ai);font-variant-numeric:tabular-nums}
+.timer{font-family:var(--disp);font-size:2.93em;line-height:1;color:var(--ai);font-variant-numeric:tabular-nums}
 .timer.hurry{color:var(--ng)}
+/* 設定 */
+:root[data-font="gothic"]{--body:"Zen Kaku Gothic New","Hiragino Sans","Noto Sans JP",sans-serif}
+:root[data-font="mincho"]{--body:"Shippori Mincho","Hiragino Mincho ProN","Yu Mincho","Noto Serif JP",serif}
+:root[data-font="dot"]{--body:"DotGothic16","Zen Maru Gothic",sans-serif;--disp:"DotGothic16",sans-serif}
+:root[data-font="system"]{--body:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Yu Gothic","Meiryo",sans-serif}
+:root[data-size="s"]{font-size:0.87em}:root[data-size="m"]{font-size:1em}:root[data-size="l"]{font-size:1.2em}:root[data-size="xl"]{font-size:1.4em}
+body{font-size:1rem}
+.hcard{font-size:1.05em}.cond{font-size:1.05em}
 /* モード選択 */
 .modes{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 .mode{border:2px solid var(--ink);border-radius:16px;padding:14px;background:var(--bg2);cursor:pointer;text-align:left;display:flex;flex-direction:column;gap:4px;box-shadow:0 4px 0 var(--ink);min-height:auto}
-.mode b{font-family:var(--disp);font-weight:400;font-size:18px;color:var(--shu)}
+.mode b{font-family:var(--disp);font-weight:400;font-size:1.2em;color:var(--shu)}
 .mode.rank b{color:var(--ai)}
+.mode.tut b{color:var(--ok)}
+.mode.set b{color:var(--mute)}
 .mode small{color:var(--mute);font-weight:500;line-height:1.4}
-.rate{font-family:var(--disp);font-size:40px;color:var(--ai);line-height:1}
-.rate small{font-family:var(--body);font-size:12px;color:var(--mute);margin-left:6px}
+.rate{font-family:var(--disp);font-size:2.67em;color:var(--ai);line-height:1}
+.rate small{font-family:var(--body);font-size:0.8em;color:var(--mute);margin-left:6px}
 .lb{display:flex;flex-direction:column;gap:4px}
 .lb .r{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:10px;border:1px solid var(--line);font-variant-numeric:tabular-nums}
 .lb .r.me{background:var(--kin-soft);border-color:var(--kin)}
@@ -134,30 +144,32 @@ textarea{min-height:120px;resize:vertical}
 .lb .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:700}
 .lb .pt{font-family:var(--disp);color:var(--ai)}
 .search{display:flex;flex-direction:column;gap:8px;align-items:center;text-align:center;padding:10px}
-.search .dots{font-family:var(--disp);font-size:28px;color:var(--ai)}
-.delta{font-family:var(--disp);font-size:28px}
+.search .dots{font-family:var(--disp);font-size:1.87em;color:var(--ai)}
+.delta{font-family:var(--disp);font-size:1.87em}
 .delta.up{color:var(--ok)}.delta.down{color:var(--ng)}
 /* スタンプ */
 .pl{position:relative}
-.bub{position:absolute;left:12px;top:-6px;transform:translateY(-100%);background:var(--panel);color:var(--ink);border:2px solid var(--ink);font-weight:900;font-size:15px;padding:4px 12px;border-radius:14px;white-space:nowrap;z-index:30;pointer-events:none;animation:bubIn 2.6s ease forwards;box-shadow:2px 2px 0 var(--ink)}
+.bub{position:absolute;left:12px;top:-6px;transform:translateY(-100%);background:var(--panel);color:var(--ink);border:2px solid var(--ink);font-weight:900;font-size:1em;padding:4px 12px;border-radius:14px;white-space:nowrap;z-index:30;pointer-events:none;animation:bubIn 2.6s ease forwards;box-shadow:2px 2px 0 var(--ink)}
 .bub:after{content:'';position:absolute;left:14px;bottom:-7px;border:6px solid transparent;border-top-color:var(--ink);border-bottom:0}
 @keyframes bubIn{0%{opacity:0;transform:translateY(-80%) scale(.4)}10%{opacity:1;transform:translateY(-100%) scale(1.12)}18%{transform:translateY(-100%) scale(1)}80%{opacity:1}100%{opacity:0;transform:translateY(-130%)}}
 .stampbox{position:relative}
 .stamps{position:absolute;right:0;top:calc(100% + 6px);z-index:40;background:var(--panel);border:2px solid var(--ink);border-radius:14px;padding:8px;display:flex;flex-wrap:wrap;gap:6px;width:max-content;max-width:min(340px,calc(100vw - 32px));box-shadow:4px 4px 0 var(--ink)}
-.stamps button{min-height:36px;padding:4px 10px;font-size:14px;border-radius:999px;box-shadow:0 2px 0 var(--ink)}
+.stamps button{min-height:36px;padding:4px 10px;font-size:0.93em;border-radius:999px;box-shadow:0 2px 0 var(--ink)}
+.stc{min-height:34px;padding:4px 12px;border-radius:999px;font-size:0.93em;box-shadow:none;border-color:var(--line);color:var(--mute);background:transparent}
+.stc.on{background:var(--kin-soft);border-color:var(--kin);color:var(--ink);box-shadow:0 2px 0 var(--ink)}
 #btnStamp.cd{opacity:.5}
 .verdict{padding:14px 16px;border-radius:18px;display:flex;flex-direction:column;gap:4px;border:2px solid var(--ink)}
 .verdict.ok{background:var(--ok-soft);box-shadow:5px 5px 0 var(--ok)}
 .verdict.ng{background:var(--ng-soft);box-shadow:5px 5px 0 var(--ng)}
-.verdict .ans{font-family:var(--deco);font-size:30px;font-weight:700}
-.log{font-size:13px;color:var(--mute);display:flex;flex-direction:column;gap:2px;max-height:160px;overflow:auto}
+.verdict .ans{font-family:var(--deco);font-size:2em;font-weight:700}
+.log{font-size:0.87em;color:var(--mute);display:flex;flex-direction:column;gap:2px;max-height:160px;overflow:auto}
 .log div{border-bottom:1px dashed var(--line);padding:3px 0}
-details summary{cursor:pointer;color:var(--ai);font-size:13px;font-weight:700}
-.rules{font-size:13px;line-height:1.7}
+details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
+.rules{font-size:0.87em;line-height:1.7}
 .rules li{margin-bottom:4px}
-.vol{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute)}
+.vol{display:flex;align-items:center;gap:6px;font-size:0.8em;color:var(--mute)}
 .vol input[type=range]{width:90px;padding:0;height:24px;accent-color:var(--shu);border:none;background:none}
-.vol button{min-height:32px;padding:4px 8px;font-size:14px;border-radius:10px;box-shadow:0 2px 0 var(--ink)}
+.vol button{min-height:32px;padding:4px 8px;font-size:0.93em;border-radius:10px;box-shadow:0 2px 0 var(--ink)}
 @media (prefers-reduced-motion:no-preference){
   .hcard,.cond{transition:box-shadow .15s,border-color .15s,background .15s}
   .band.mine{animation:pulse 1.2s ease-in-out infinite}
@@ -181,18 +193,10 @@ details summary{cursor:pointer;color:var(--ai);font-size:13px;font-weight:700}
     <div class="modes">
       <button class="mode" id="btnModeVs"><b>VSモード</b><small>3〜8人でわいわい。部屋コードで集まる。AI対戦相手も追加できる。</small></button>
       <button class="mode rank" id="btnModeRank"><b>ガチンコモード</b><small>1対1のレート戦。4ラウンド勝負、勝てばレートが上がる。相手がいなければAIと対戦。</small></button>
+      <button class="mode tut" id="btnTut"><b>はじめての方はこちら</b><small>練習しながらルールを覚える。1人・約3分。</small></button>
+      <button class="mode set" id="btnModeSet"><b>設定</b><small>文字の種類・大きさ、音量など。</small></button>
     </div>
-    <div id="vsBox" class="hidden" style="display:flex;flex-direction:column;gap:10px">
-      <div class="row">
-        <button class="pri grow" id="btnCreate">部屋をつくる（主催）</button>
-        <button class="grow" id="btnTut">はじめての人はこちら（練習・約3分）</button>
-      </div>
-      <div class="row">
-        <input id="inCode" class="grow" maxlength="4" placeholder="部屋コード 4桁" inputmode="numeric" style="letter-spacing:.3em;font-size:20px;text-align:center">
-        <button class="sec" id="btnJoin">参加</button>
-      </div>
-    </div>
-    <div id="entryMsg" class="muted">同じ部屋コードを入力した全員が、各自の端末から同じ卓に着きます。アカウント登録は不要。</div>
+    <div id="entryMsg" class="muted">アカウント登録は不要。名前だけ決めて遊べます。</div>
     <details id="keyBox"><summary>AI設定（主催者のみ必要）</summary>
       <div class="muted" style="margin:6px 0">主催者の端末だけがAI（判定・AI対戦相手）を呼び出します。AnthropicのAPIキーをこの端末に保存します（この端末のブラウザにだけ残り、他の参加者には送られません）。</div>
       <div class="row"><input id="inKey" class="grow" type="password" placeholder="sk-ant-..." autocomplete="off"><button id="btnSaveKey">保存</button></div>
@@ -210,6 +214,41 @@ details summary{cursor:pointer;color:var(--ai);font-size:13px;font-weight:700}
         <li>合計20点で勝ち。</li>
       </ol>
     </details>
+  </div>
+
+  <!-- VS入口 -->
+  <div id="vVs" class="card hidden">
+    <div class="lbl">VSモード</div>
+    <button class="pri" id="btnCreate" style="width:100%;font-size:17px">部屋をつくる（自分が主催）</button>
+    <div class="muted">できた4桁のコードを仲間に伝える。3〜8人（AI対戦相手を足して1人でも遊べる）。</div>
+    <div class="lbl" style="margin-top:6px">仲間の部屋に入る</div>
+    <div class="row">
+      <input id="inCode" class="grow" maxlength="4" placeholder="部屋コード 4桁" inputmode="numeric" style="letter-spacing:.3em;font-size:20px;text-align:center">
+      <button class="sec" id="btnJoin">参加</button>
+    </div>
+    <div id="vsMsg" class="muted"></div>
+    <button id="btnVsBack">戻る</button>
+  </div>
+
+  <!-- 設定 -->
+  <div id="vSet" class="card hidden">
+    <div class="lbl">設定</div>
+    <div class="row"><label class="grow">文字の種類
+      <select id="setFont" style="margin-top:4px"><option value="maru">丸ゴシック（標準）</option><option value="gothic">ゴシック</option><option value="mincho">明朝</option><option value="dot">ドット文字</option><option value="system">端末の標準フォント</option></select></label>
+      <label class="grow">文字の大きさ
+      <select id="setSize" style="margin-top:4px"><option value="s">小</option><option value="m">中（標準）</option><option value="l">大</option><option value="xl">特大</option></select></label></div>
+    <div class="row"><label class="grow">見た目
+      <select id="setTheme" style="margin-top:4px"><option value="auto">端末に合わせる</option><option value="light">明るい</option><option value="dark">暗い</option></select></label>
+      <label class="grow">効果音の音量
+      <input id="setVol" type="range" min="0" max="100" style="margin-top:10px"></label></div>
+    <div class="row"><label class="grow">カウントダウン音 <select id="setCd" style="margin-top:4px"><option value="1">鳴らす</option><option value="0">鳴らさない</option></select></label>
+      <label class="grow">相手のひとこと（スタンプ） <select id="setBub" style="margin-top:4px"><option value="1">表示する</option><option value="0">見ない</option></select></label></div>
+    <div class="lbl" style="margin-top:6px">ひとこと（スタンプ）を8個まで選ぶ</div>
+    <div class="row" id="stPool"></div>
+    <div class="muted" id="stMsg"></div>
+    <div class="muted">設定はこの端末に保存されます。</div>
+    <div style="padding:10px;border:1px dashed var(--line);border-radius:12px">プレビュー：<b>赤い・丸い・甘い</b>　→　りんご</div>
+    <button class="pri" id="btnSetBack">閉じる</button>
   </div>
 
   <!-- ガチンコ -->
@@ -659,8 +698,15 @@ async function aiJson(prompt,opts){
   let j; try{ j=JSON.parse(raw); }catch(e){ throw {code:'bad_response',message:raw.slice(0,80)}; }
   if(j.type==='error') throw {code:'api_error',message:(j.error&&j.error.message||'').slice(0,120)};
   const text=(j.content||[]).map(c=>c.text||'').join('');
-  const a=text.indexOf('{'), b=text.lastIndexOf('}'); if(a<0||b<0) throw {code:'invalid_json',message:text.slice(0,80)};
-  return JSON.parse(text.slice(a,b+1));
+  return parseLoose(text);
+}
+function parseLoose(text){
+  const a=text.indexOf('{'), b=text.lastIndexOf('}');
+  if(a>=0&&b>a){ try{ return JSON.parse(text.slice(a,b+1)); }catch(e){} }
+  const o={}; const re=/"([A-Za-z_]+)"\s*:\s*(true|false|null|-?\d+(?:\.\d+)?|"((?:[^"\\]|\\.)*)")/g; let m, n=0;
+  while((m=re.exec(text))){ n++; o[m[1]]=m[3]!==undefined?m[3]:(m[2]==='true'?true:m[2]==='false'?false:m[2]==='null'?null:Number(m[2])); }
+  if(n) return o;
+  throw {code:'invalid_json',message:text.slice(0,80)};
 }
 
 // ---------- 接続・識別 ----------
@@ -681,7 +727,7 @@ boot();
 // ---------- 入室 ----------
 $('btnCreate').onclick=async()=>{
   if(!getName())return;
-  if(!AI_PROXY_URL&&!apiKey){ $('entryMsg').textContent='主催するにはAI設定でAPIキーを保存してください。'; $('keyBox').open=true; return; }
+  if(!AI_PROXY_URL&&!apiKey){ $('vsMsg').textContent='主催するにはAI設定でAPIキーを保存してください（最初の画面の下）。'; return; }
   try{ const old=await fdb.ref('rooms').orderByChild('createdAt').endAt(now()-12*3600*1000).limitToFirst(20).get(); old.forEach(c=>{c.ref.remove();}); }catch(e){}
   const code=String(Math.floor(1000+Math.random()*9000));
   const s={v:1,code,hostId:me,phase:'lobby',players:[{id:me,name:myName,score:0,hand:[],mulliganed:false,passed:false}],
@@ -691,13 +737,13 @@ $('btnCreate').onclick=async()=>{
 };
 $('btnJoin').onclick=async()=>{
   if(!getName())return;
-  const code=$('inCode').value.trim(); if(!/^\d{4}$/.test(code)){$('entryMsg').textContent='部屋コードは4桁の数字です。';return;}
+  const code=$('inCode').value.trim(); if(!/^\d{4}$/.test(code)){$('vsMsg').textContent='部屋コードは4桁の数字です。';return;}
   const snap=await fdb.ref('rooms/'+code).get();
-  if(!snap.exists()){$('entryMsg').textContent='その部屋は見つかりません。';return;}
+  if(!snap.exists()){$('vsMsg').textContent='その部屋は見つかりません。';return;}
   const s=normalize(JSON.parse(JSON.stringify(snap.val())));
   if(!s.players.find(p=>p.id===me)){
-    if(s.phase!=='lobby'){$('entryMsg').textContent='この部屋はすでに対局中です。';return;}
-    if(s.players.length>=8){$('entryMsg').textContent='満席です（8人まで）。';return;}
+    if(s.phase!=='lobby'){$('vsMsg').textContent='この部屋はすでに対局中です。';return;}
+    if(s.players.length>=8){$('vsMsg').textContent='満席です（8人まで）。';return;}
     s.players.push({id:me,name:myName,score:0,hand:[],mulliganed:false,passed:false}); log(s,myName+' が参加');
     await save(s,code);
   }
@@ -720,7 +766,7 @@ function joinRoom(code,silent){
   unsub=()=>ref.off('value',cb);
 }
 async function save(s,code){s.v=(s.v||0)+1; s.updatedAt=now(); await fdb.ref('rooms/'+(code||s.code)).set(JSON.parse(JSON.stringify(s)));}
-function leave(){if(unsub)unsub();unsub=null;S=null;roomRef=null;if(presUnsub){presUnsub();presUnsub=null;}oppOffSince=0;if(stUnsub){stUnsub();stUnsub=null;}stRoom='';stopTimer();stopFlash();lastTurnMine=false;lastSig='';try{sessionStorage.removeItem('tsuru.room')}catch(e){};show('vEntry');}
+function leave(){$('topRight').textContent=APP_VER;if(unsub)unsub();unsub=null;S=null;roomRef=null;if(presUnsub){presUnsub();presUnsub=null;}oppOffSince=0;if(stUnsub){stUnsub();stUnsub=null;}stRoom='';stopTimer();stopFlash();lastTurnMine=false;lastSig='';try{sessionStorage.removeItem('tsuru.room')}catch(e){};show('vEntry');}
 $('btnLeave').onclick=$('btnQuit').onclick=async()=>{
   if(S&&S.mode==='rank'&&S.phase!=='over'&&!S.result){
     if(!quitArmed){ quitArmed=true; $('btnQuit').textContent='本当に退室する？（負け・3倍減）'; $('btnQuit').style.background='var(--ng)'; $('btnQuit').style.color='#fff'; setTimeout(()=>{quitArmed=false;$('btnQuit').textContent='退室';$('btnQuit').style.background='';$('btnQuit').style.color='';},4000); return; }
@@ -732,9 +778,25 @@ $('btnLeave').onclick=$('btnQuit').onclick=async()=>{
 };
 let quitArmed=false;
 function clone(){return JSON.parse(JSON.stringify(S))}
-function show(v){['vEntry','vLobby','vGame','vTut','vRank'].forEach(x=>$(x).classList.toggle('hidden',x!==v)); $('btnStamp').classList.toggle('hidden',v!=='vGame');}
-$('btnModeVs').onclick=()=>{ $('vsBox').classList.remove('hidden'); $('btnModeVs').scrollIntoView({behavior:'smooth',block:'start'}); };
+function show(v){['vEntry','vLobby','vGame','vTut','vRank','vVs','vSet'].forEach(x=>$(x).classList.toggle('hidden',x!==v)); $('btnStamp').classList.toggle('hidden',v!=='vGame');}
+$('btnModeVs').onclick=()=>{ if(!getName())return; $('vsMsg').textContent=''; show('vVs'); };
+$('btnVsBack').onclick=()=>show('vEntry');
 $('btnModeRank').onclick=()=>{ if(!getName())return; openRank(); };
+// ---------- 設定 ----------
+const SET={font:'maru',size:'m',theme:'auto',cd:'1',bub:'1'};
+try{ Object.assign(SET,JSON.parse(localStorage.getItem('tsuru.set')||'{}')); }catch(e){}
+function applySet(){ const r=document.documentElement; r.dataset.font=SET.font; r.dataset.size=SET.size; if(SET.theme==='auto')r.removeAttribute('data-theme'); else r.dataset.theme=SET.theme; try{localStorage.setItem('tsuru.set',JSON.stringify(SET))}catch(e){} }
+applySet();
+$('btnModeSet').onclick=()=>{ $('setFont').value=SET.font; $('setSize').value=SET.size; $('setTheme').value=SET.theme; $('setCd').value=SET.cd; $('setBub').value=SET.bub; $('setVol').value=Math.round(SFX.vol*100); buildStPool(); $('stMsg').textContent=myStamps().length+'/8'; show('vSet'); };
+$('btnSetBack').onclick=()=>show('vEntry');
+function buildStPool(){ const cur=myStamps(); $('stPool').innerHTML=STAMP_POOL.map(t=>`<button class="stc ${cur.includes(t)?'on':''}" data-t="${esc(t)}">${esc(t)}</button>`).join('');
+  $('stPool').querySelectorAll('.stc').forEach(b=>b.onclick=()=>{ let a=myStamps(); const t=b.dataset.t;
+    if(a.includes(t)){ if(a.length<=1){$('stMsg').textContent='最低1個は残して';return;} a=a.filter(x=>x!==t); }
+    else { if(a.length>=8){$('stMsg').textContent='8個まで。どれか外してから選んで';return;} a.push(t); }
+    a=STAMP_POOL.filter(x=>a.includes(x)); try{localStorage.setItem('tsuru.stamps',JSON.stringify(a))}catch(e){} $('stMsg').textContent=a.length+'/8'; stRoom=''; buildStPool(); }); }
+['setFont','setSize','setTheme','setCd','setBub'].forEach(id=>{ $(id).onchange=()=>{ SET[id.slice(3).toLowerCase()]=$(id).value; applySet(); sfx('btn'); }; });
+$('setVol').oninput=()=>{ SFX.vol=$('setVol').value/100; $('inVol').value=$('setVol').value; try{localStorage.setItem('tsuru.vol',SFX.vol)}catch(e){} };
+$('setVol').onchange=()=>sfx('tick');
 
 // ---------- チュートリアル（ローカル・台本付き） ----------
 const T={};
@@ -1053,11 +1115,13 @@ function presenceSetup(code){
 async function claimForfeit(){ const s=clone(); const opp=s.players.find(p=>p.id!==me); if(!opp)return; forfeit(s,opp.id); await save(s); }
 
 // ---------- ひとこと（スタンプ） ----------
-const STAMPS=['対よろ','GG','草','うおｗ','ファッ！？','ドンマイ','ナイス','ごめんて','乙','神','まじか','ひええ','早く！','やるぅ','それは無理','知らんがな'];
-const CPU_STAMPS={win:['やるぅ','神','ナイス'],lose:['ドンマイ','まじか','ひええ'],steal:['いただき','草','やるぅ'],hello:['対よろ'],bye:['GG','乙']};
-const STAMP_OK=new Set([...STAMPS,'いただき']);
+const STAMP_POOL=['よろしく','対よろ','GG','いいね','草','うおｗ','ファッ！？','ドンマイ','ナイス','ごめん','上手い！','天才！','ありがとう','素敵やん','乙','神','まじか','早く！','やりますねぇ！','それは無理','知らんがな','先言われた～','異議あり！'];
+const STAMP_DEF=['対よろ','GG','草','ドンマイ','ナイス','上手い！','まじか','知らんがな'];
+function myStamps(){ try{ const a=JSON.parse(localStorage.getItem('tsuru.stamps')||'null'); if(Array.isArray(a)){ const b=STAMP_POOL.filter(x=>a.includes(x)).slice(0,8); if(b.length)return b; } }catch(e){} return STAMP_DEF.slice(); }
+const CPU_STAMPS={win:['やりますねぇ！','神','ナイス','天才！'],lose:['ドンマイ','まじか','それは無理'],steal:['先言われた～','草','いいね'],hello:['対よろ','よろしく'],bye:['GG','乙']};
+const STAMP_OK=new Set(STAMP_POOL);
 let stampCD=0, stUnsub=null, stSeen={}, stRoom='';
-function stampsSetup(){ if(!S||stRoom===S.code)return; stRoom=S.code; const box=$('stamps'); box.innerHTML=''; STAMPS.forEach(t=>{const b=document.createElement('button'); b.textContent=t; b.onclick=e=>{e.stopPropagation();sendStamp(t);}; box.appendChild(b);});
+function stampsSetup(){ if(!S||stRoom===S.code)return; stRoom=S.code; const box=$('stamps'); box.innerHTML=''; myStamps().forEach(t=>{const b=document.createElement('button'); b.textContent=t; b.onclick=e=>{e.stopPropagation();sendStamp(t);}; box.appendChild(b);});
   if(stUnsub)stUnsub(); const ref=fdb.ref('live/'+S.code+'/stamps'); const cb=sn=>{ const v=sn.val()||{}; Object.entries(v).forEach(([id,x])=>{ if(!x||id===me)return; if(now()-(x.ts||0)>6000)return; if(stSeen[id]>=x.ts)return; stSeen[id]=x.ts; if(!STAMP_OK.has(x.txt))return; bubble(id,x.txt); }); };
   ref.on('value',cb); stUnsub=()=>ref.off('value',cb); }
 $('btnStamp').onclick=e=>{ e.stopPropagation(); if(now()<stampCD)return; $('stamps').classList.toggle('hidden'); };
@@ -1066,7 +1130,7 @@ function sendStamp(t){ if(!S||now()<stampCD)return; stampCD=now()+5000; $('stamp
   try{ fdb.ref('live/'+S.code+'/stamps/'+me).set({txt:t,ts:now()}); }catch(e){}
   const bt=$('btnStamp'); bt.classList.add('cd'); let left=5; bt.textContent='⏳'+left; const iv=setInterval(()=>{left--; if(left<=0){clearInterval(iv);bt.textContent='💬';bt.classList.remove('cd');} else bt.textContent='⏳'+left;},1000); }
 const bubs={};
-function bubble(pid,txt){ bubs[pid]={txt,t0:now()}; drawBubs(); sfx('tick'); setTimeout(drawBubs,2700); }
+function bubble(pid,txt){ if(pid!==me&&SET.bub!=='1')return; bubs[pid]={txt,t0:now()}; drawBubs(); sfx('tick'); setTimeout(drawBubs,2700); }
 function drawBubs(){ if(!S)return; const t=now(); Object.entries(bubs).forEach(([pid,v])=>{ if(t-v.t0>2600){delete bubs[pid];return;}
   const row=document.querySelector('#gamePlayers .pl[data-id="'+pid+'"]'); if(!row)return; let b=row.querySelector('.bub'); if(b&&b.dataset.t0==v.t0)return; if(b)b.remove();
   b=document.createElement('div'); b.className='bub'; b.dataset.t0=v.t0; b.textContent=v.txt; row.appendChild(b); }); }
@@ -1179,15 +1243,16 @@ ${conds}
 宣言された答え: 「${ans}」
 ${S.appeal?`\n※他プレイヤーから異議: 「${S.appeal.text}」。この指摘も踏まえて改めて判定してください。`:''}
 
-次のJSONのみを返してください（説明文は不要）:
-{"exists": true/false, "ok": true/false, "genreOk": true/false, "reason": "40字以内の判定理由（造語なら『造語』と明記、満たさない条件があれば番号を挙げる）"}
+次のJSONのみを返してください。考察や説明は一切書かず、1文字目を { にすること:
+{"ok": true/false, "genreOk": true/false, "exists": true/false, "reason": "40字以内の判定理由（造語なら『造語』と明記、満たさない条件があれば番号を挙げる）"}
 existsがfalseならokも必ずfalseにしてください。`;
   const key=S.judgeKey; let v;
   try{ v=await sample(prompt,{model:S.judgeModel}); }
-  catch(e){ console.warn('judge',e); v={ok:false,genreOk:false,reason:'AI判定に失敗（'+(e.code||'error')+(e.message?'：'+String(e.message).slice(0,60):'')+'）。異議で再判定できます'}; }
+  catch(e1){ try{ v=await sample(prompt+'\n\n（注意：前回の回答はJSONが不完全でした。JSONだけを短く返してください）',{model:S.judgeModel}); }
+  catch(e){ console.warn('judge',e); v={ok:false,genreOk:false,reason:'AI判定に失敗（'+(e.code||'error')+(e.message?'：'+String(e.message).slice(0,60):'')+'）。異議で再判定できます'}; } }
   if(!S||S.judgeKey!==key)return;
   const s=clone(); if(!['judging','stealJudging'].includes(s.phase))return;
-  const vv={ok:!!v.ok,genreOk:!!v.genreOk,reason:String(v.reason||'').slice(0,80)};
+  const vv={ok:!!v.ok&&v.exists!==false,genreOk:!!v.genreOk,reason:String(v.reason||(v.ok===undefined?'判定結果を読み取れなかった':'')).slice(0,80)};
   if(isSteal){ s.stealVerdict=vv; applyStealVerdict(s); } else { s.verdict=vv; applyVerdict(s); }
   s.appeal=null; await save(s);
   const actorId=isSteal?s.stealQueue[s.stealIdx-1]:s.tsuru; const ap=P(s,actorId);
@@ -1259,7 +1324,8 @@ function render(){
   else if(S.phase==='tsuru'){
     const mine=S.tsuru===me; band.classList.toggle('mine',mine);
     if(S.tsuruStage==='extra'){
-      band.innerHTML=`<h2>${mine?'あなたが鶴':esc(pname(S,S.tsuru))+' が鶴'}</h2><div class="muted">一声の前に、手札から1枚だけ追加できる（任意）</div>`;
+      band.innerHTML=`<h2>${mine?'あなたが鶴':esc(pname(S,S.tsuru))+' が鶴'}</h2>`+(P(S,S.tsuru)&&P(S,S.tsuru).cpu?'':`<div class="timer" id="tm"></div>`)+`<div class="muted">一声の前に、手札から1枚だけ追加できる（任意・15秒）</div>`;
+      if(!(P(S,S.tsuru)&&P(S,S.tsuru).cpu)) runTimer(S.turnStartAt+15000,()=>{ if(mine)tsuruExtra(-1); });
       if(mine) act.innerHTML=`<div class="row"><button class="sec grow" id="bExtra" ${selCard<0?'disabled':''}>選んだ札を追加する</button><button class="pri grow" id="bNoExtra">追加せず宣言へ</button></div>`;
       if(!mine&&isHost&&P(S,S.tsuru)&&P(S,S.tsuru).cpu){ band.innerHTML+=`<div class="timer" id="tm" style="font-size:24px"></div>`; runTimer(S.turnStartAt+25000,()=>{ const v0=S.v; setTimeout(async()=>{ if(S&&S.v===v0&&S.phase==='tsuru'){ const s=clone(); cpuKey='timeout:'+v0; await cpuFallback(s); await save(s); } },3000); }); }
       if(mine){$('bExtra').onclick=()=>{const i=selCard;selCard=-1;tsuruExtra(i);}; $('bNoExtra').onclick=()=>tsuruExtra(-1);}
@@ -1337,7 +1403,7 @@ function runTimer(deadline,onEnd){
   const el=$('tm'); if(!el)return; let fired=false;
   const mineNow=lastTurnMine||!S;
   const tick=()=>{const r=Math.max(0,Math.ceil((deadline-now())/1000)); el.textContent=r; el.classList.toggle('hurry',r<=5);
-    if(mineNow&&r>0&&r!==hurryLast){hurryLast=r;sfx(r<=5?'hurry':'cd');}
+    if(mineNow&&r>0&&r!==hurryLast){hurryLast=r; if(SET.cd==='1'||r<=5)sfx(r<=5?'hurry':'cd');}
     if(r<=0&&!fired){fired=true;stopTimer();onEnd();}};
   tick(); timerIv=setInterval(tick,250);
 }
