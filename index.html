@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v6.5";
+const APP_VER = "v6.6";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -1682,6 +1682,7 @@ existsがfalseならokも必ずfalseにしてください。`;
 
 // ---------- 描画 ----------
 function render(){
+  if(rerenderT){clearTimeout(rerenderT);rerenderT=null;}
   if(!S){show('vEntry');$('topRight').textContent=APP_VER;return;}
   maybeJudge(); maybeCpu(); maybeExamples();
   const isHost=S.hostId===me;
@@ -1788,7 +1789,7 @@ function render(){
     vb.innerHTML=`<div class="verdict ${v.ok?'ok':'ng'}"><div class="lbl">${esc(pname(S,S.tsuru))} の一声</div><div class="ans">${esc(S.answer)}</div><div><b>${v.ok?'成功 +'+n+(v.genreOk?'　ジャンル +1':'　ジャンル未達'):'失敗 −'+n}</b></div><div class="muted">${esc(v.reason||'')}</div></div>`;
     band.innerHTML=`<h2>判定</h2>`+(v.ok&&S.stealQueue.length?`<div>このあと奪い合い（札を出した逆順）</div>${orderStrip()}`:'');
     const apLeft=Math.max(0,Math.ceil((S.turnStartAt+8000-now())/1000)); const apOpen=S.mode!=='rank'&&!S.tutorial&&apLeft>0&&S.players.filter(p=>!p.cpu).length>1;
-    if(apOpen) setTimeout(()=>{ if(S&&S.phase==='verdict')render(); },apLeft*1000+50);
+    if(apOpen) tickText(()=>$('bNext'),S.turnStartAt+8000,l=>'異議受付中… '+l,'verdict');
     act.innerHTML=(isHost?`<button class="pri" id="bNext" ${apOpen?'disabled':''}>${apOpen?'異議受付中… '+apLeft:(v.ok&&S.stealQueue.length?'同時解答へ':'ラウンド終了へ')}</button>`:`<div class="muted">${apOpen?'異議受付中… '+apLeft+'秒':'主催者が進めます'}</div>`)+
       (canAppeal?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:`<div class="muted">あなたの異議はこのラウンドで使用済み</div>`);
     if(isHost)$('bNext').onclick=proceedAfterVerdict;
@@ -1807,7 +1808,7 @@ function render(){
     vb.innerHTML=`<div class="verdict ${r.ok?'ok':'ng'}"><div class="lbl">${esc(pname(S,r.by))} の同時解答</div><div class="ans">${esc(r.answer)}</div><div><b>${r.ok?'成功　札を1枚奪取'+(r.gotGenre?'　ジャンル +1':''):'不成立'}</b></div><div class="muted">${esc(r.reason||'')}</div></div>`;
     band.innerHTML=`<h2>判定</h2>${orderStrip()}`+(S.stealIdx<S.stealQueue.length&&S.tsuruGained>0?`<div class="muted">次は ${esc(pname(S,S.stealQueue[S.stealIdx]))}</div>`:'<div class="muted">奪い合いはここまで</div>');
     const apLeft2=Math.max(0,Math.ceil((S.turnStartAt+8000-now())/1000)); const apOpen2=S.mode!=='rank'&&!S.tutorial&&apLeft2>0&&S.players.filter(p=>!p.cpu).length>1;
-    if(apOpen2) setTimeout(()=>{ if(S&&S.phase==='stealVerdict')render(); },apLeft2*1000+50);
+    if(apOpen2) tickText(()=>$('bNext2'),S.turnStartAt+8000,l=>'異議受付中… '+l,'stealVerdict');
     act.innerHTML=(isHost?`<button class="pri" id="bNext2" ${apOpen2?'disabled':''}>${apOpen2?'異議受付中… '+apLeft2:'次へ'}</button>`:`<div class="muted">${apOpen2?'異議受付中… '+apLeft2+'秒':'主催者が進めます'}</div>`)+
       (canAppeal?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:'');
     if(isHost)$('bNext2').onclick=proceedAfterSteal;
@@ -1824,7 +1825,7 @@ function render(){
     band.innerHTML=exHtml+`<h2>第${S.round}ラウンド終了</h2><div>${swapMode?'いらない札を選んで交換できます（1回）。しなくてもOK。次のラウンドで5枚まで補充されます。':meP.swapped?'交換済み。次のラウンドで5枚まで補充されます。':'次のラウンドで手札を5枚まで補充されます。'}</div>`;
     const waiting=S.players.filter(p=>!p.cpu&&!p.swapped).map(p=>p.name);
     const swLeft=Math.max(0,Math.ceil((S.turnStartAt+30000-now())/1000)); const swLock=S.mode!=='rank'&&!S.tutorial&&waiting.length>0&&swLeft>0;
-    if(swLock) setTimeout(()=>{ if(S&&S.phase==='roundEnd')render(); },1000);
+    if(swLock) tickText(()=>$('bRound'),S.turnStartAt+30000,l=>'交換待ち… '+l,'roundEnd');
     act.innerHTML=(swapMode?`<div class="row"><button class="sec grow" id="bSwap" ${swapSel.size?'':'disabled'}>選んだ${swapSel.size}枚を交換</button><button class="grow" id="bNoSwap">交換しない</button></div>`:'')+
       (isHost?`<button class="pri" id="bRound" ${swLock?'disabled':''}>${swLock?'交換待ち… '+swLeft:'次のラウンドへ'}</button>${waiting.length?`<div class="muted">交換を迷ってる人：${esc(waiting.join('、'))}</div>`:''}`:`<div class="muted">${swLock?'全員の交換が終わるか30秒で次へ':'主催者が次のラウンドを始めます'}</div>`);
     if(swapMode){$('bSwap').onclick=()=>{const idx=[...swapSel];swapSel.clear();swapCards(idx);}; $('bNoSwap').onclick=async()=>{const s=clone();P(s,me).swapped=true;await save(s);};}
@@ -1854,6 +1855,9 @@ function orderStrip(){
   return `<div class="order"><span class="muted">順番：</span>`+q.map((id,k)=>{const r=S.stealResults.find(x=>x.by===id); const cls=r?'done':(k===S.stealIdx&&['steal','stealJudging'].includes(S.phase)?'now':'');
     return `<span class="st ${cls}">${k+1}. ${esc(pname(S,id))}${r?(r.ok?' ✓':' ×'):''}</span>`+(k<q.length-1?'<span class="arrow">→</span>':'');}).join('')+`</div>`;
 }
+let rerenderT=null;
+function tickText(getEl,deadline,fmt,phase){ const iv=setInterval(()=>{ if(!S||S.phase!==phase){clearInterval(iv);return;} const l=Math.max(0,Math.ceil((deadline-now())/1000)); if(l<=0){clearInterval(iv);render();return;} const el=getEl(); if(el&&!el.disabled===false)el.textContent=fmt(l); else if(el)el.textContent=fmt(l); },1000); if(timerIv)clearInterval(timerIv); timerIv=iv; }
+function scheduleRender(phase,ms){ if(rerenderT)clearTimeout(rerenderT); rerenderT=setTimeout(()=>{ rerenderT=null; if(S&&S.phase===phase)render(); },ms); }
 function runTimer(deadline,onEnd){
   const el=$('tm'); if(!el)return; let fired=false;
   if(S&&S.tutorial){ el.textContent='∞'; el.classList.remove('hurry'); return; }
