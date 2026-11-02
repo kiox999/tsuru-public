@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v4.1";
+const APP_VER = "v4.4";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -151,6 +151,16 @@ body.tut .wrap{padding-bottom:150px}
 .mode.rank b{color:var(--ai)}
 .mode.tut b{color:var(--ok)}
 .mode.solo b{color:var(--kin)}
+/* カレンダー */
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.cal .wd{text-align:center;font-size:.75em;color:var(--mute);font-weight:900}
+.cal .d{min-height:44px;border:2px solid var(--line);border-radius:10px;padding:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;background:var(--panel);box-shadow:none;font-size:.9em;line-height:1.1}
+.cal .d small{font-size:.7em;color:var(--mute);font-weight:700}
+.cal .d.off{opacity:.3;cursor:default}
+.cal .d.ok{background:var(--ok-soft);border-color:var(--ok)}
+.cal .d.ng{background:var(--ng-soft);border-color:var(--ng)}
+.cal .d.sel{outline:3px solid var(--kin);outline-offset:1px}
+.cal .d.today small{color:var(--shu)}
 /* ソリティア */
 .fieldcard{border:3px solid var(--ink);border-radius:16px;padding:18px 16px;background:var(--kin-soft);text-align:center;font-family:var(--disp);font-size:1.6em;box-shadow:5px 5px 0 var(--kin)}
 .fieldcard small{display:block;font-family:var(--body);font-size:.5em;color:var(--mute);font-weight:700;letter-spacing:.2em}
@@ -228,13 +238,13 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
     <div class="lbl">名前</div>
     <input id="inName" maxlength="12" placeholder="ニックネーム">
     <div class="modes">
-      <button class="mode" id="btnModeVs"><b>VSモード</b><small>2〜8人でわいわい。部屋コードで集まる。AI対戦相手も追加できる。</small></button>
-      <button class="mode rank" id="btnModeRank"><b>ガチンコモード</b><small>1対1のレート戦。4ラウンド勝負、勝てばレートが上がる。相手がいなければAIと対戦。</small></button>
-      <button class="mode solo" id="btnModeSolo"><b>ソリティア</b><small>1人用。場札と手札を組み合わせて言葉を作り、手札を全部消す。今日のお題で競える。</small></button>
-      <button class="mode tut" id="btnTut"><b>はじめての方はこちら</b><small>練習しながらルールを覚える。1人・約3分。</small></button>
-      <button class="mode set" id="btnModeSet" style="grid-column:1/-1"><b>設定</b><small>文字の種類・大きさ、音量、スタンプの選択。</small></button>
+      <button class="mode" id="btnModeVs"><b>VSモード</b><small>2〜8人でわいわい。部屋コードで集まれます。AIを混ぜてもOK。</small></button>
+      <button class="mode rank" id="btnModeRank"><b>ガチンコモード</b><small>1対1の真剣勝負。4ラウンドでレートを奪い合います。相手がいなければAIが相手です。</small></button>
+      <button class="mode solo" id="btnModeSolo"><b>ソリティア</b><small>ひとりでじっくり。札を束ねて言葉を作り、手札を全部消しましょう。今日のお題でスコア勝負もできます。</small></button>
+      <button class="mode tut" id="btnTut"><b>はじめての方はこちら</b><small>練習試合でルールを覚えましょう。約1〜3分です。</small></button>
+      <button class="mode set" id="btnModeSet" style="grid-column:1/-1"><b>設定</b><small>文字の種類や大きさ、音、スタンプを変えられます。</small></button>
     </div>
-    <div id="entryMsg" class="muted">アカウント登録は不要。名前だけ決めて遊べます。</div>
+    <div id="entryMsg" class="muted">アカウント登録はいりません。名前を入れたらすぐ遊べます！</div>
     <details id="keyBox"><summary>AI設定（主催者のみ必要）</summary>
       <div class="muted" style="margin:6px 0">主催者の端末だけがAI（判定・AI対戦相手）を呼び出します。AnthropicのAPIキーをこの端末に保存します（この端末のブラウザにだけ残り、他の参加者には送られません）。</div>
       <div class="row"><input id="inKey" class="grow" type="password" placeholder="sk-ant-..." autocomplete="off"><button id="btnSaveKey">保存</button></div>
@@ -242,14 +252,14 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
     </details>
     <details><summary>ルールを読む</summary>
       <ol class="rules">
-        <li>ラウンド開始時にジャンルが公開される。ジャンルは<b>任意</b>。満たさなくても答えは有効で、満たせば＋1点のボーナス。</li>
-        <li>手番が来たら、場の条件すべて＋出す札を満たす言葉を20秒以内に思いつけるときだけ札を出せる。無理ならパス（以後そのラウンドは出せない）。</li>
-        <li>自分以外の全員がパスしたら（または全員がパスしたら）、最後に札を出した人が自動で鶴。手札から1枚追加してもよく、20秒以内に答えを宣言。</li>
-        <li>AIが判定。成功なら場の札の枚数分が得点（ジャンルも満たせば＋1）。失敗なら枚数分マイナス。</li>
-        <li>成功時、このラウンドに1枚でも札を出した他の人（途中でパスしていても可）が逆順に別解を答える（鶴と同じ答えは不可）。成功すれば鶴の札を1枚奪う。</li>
-        <li>判定に納得できなければ「異議」でAIに再判定を求められる（1回）。</li>
-        <li>ラウンド終了時に、いらない手札を選んで交換できる（1回）。次のラウンド開始時に5枚まで補充。</li>
-        <li>合計20点で勝ち。</li>
+        <li>ラウンドの最初に<b>ジャンル</b>が出る。これは<b>おまけ</b>。合えば＋1点、合わなくても答えはちゃんと有効。</li>
+        <li>自分の番が来たら、「場の条件ぜんぶ＋出す札」を満たす言葉が20秒で浮かんだときだけ札を出せる。浮かばなければパス（そのラウンドはもう出せない）。</li>
+        <li>自分以外が全員パスしたら、最後に札を出した人が<b>鶴</b>。手札から1枚足してもよくて（15秒）、20秒で答えを言う。</li>
+        <li>AIが判定。当たれば場の札の枚数ぶん得点（ジャンルも合えば＋1）。外れたら枚数ぶんマイナス。</li>
+        <li>当たったら<b>奪い合い</b>。このラウンドに1枚でも札を出した人（途中でパスしててもOK）が、出した逆順に、鶴と違う答えを言う。当たれば鶴の札を1枚もらえる。</li>
+        <li>判定に納得いかなければ「異議あり」でAIにもう一度考えてもらえる（ラウンド1回）。</li>
+        <li>ラウンドの終わりに、いらない手札を交換できる（1回）。次のラウンドで5枚まで補充。</li>
+        <li>先に20点とった人の勝ち。</li>
       </ol>
     </details>
   </div>
@@ -257,14 +267,21 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
   <!-- ソリティア 入口 -->
   <div id="vSolo" class="card hidden">
     <div class="lbl">ソリティア</div>
-    <div class="muted">場札1枚＋手札を何枚でも束ねて、全部を満たす言葉を宣言。成功した分だけ手札が減る。規定ターン以内に手札を空にできれば勝ち。失敗すると手札が戻って＋2枚、パスは＋1枚で場札交換。</div>
+    <div class="muted">場札1枚に手札を好きなだけ束ねて、ぜんぶ満たす言葉を宣言します。当たれば束ねた札が消えます。ターン内に手札を空にできたら勝ち！ 外すと札が戻ってきて＋2枚、パスは＋1枚で場札だけ替わります。</div>
     <div class="seg"><button id="soloDaily" class="on">今日のお題</button><button id="soloFree">フリー</button></div>
-    <div class="muted" id="soloModeMsg">今日のお題：同じ日・同じレベルなら全員同じ札。スコアでランキング。</div>
-    <div class="lbl">レベル</div>
-    <div class="lv"><button id="lvDown">−</button><b id="lvNum">1</b><button id="lvUp">＋</button></div>
+    <div class="muted" id="soloModeMsg">今日のお題：今日はみんな同じ札。スコアで競えます。</div>
+    <div id="calBox">
+      <div class="row" style="justify-content:space-between"><button id="calPrev">‹</button><b id="calTitle" style="font-family:var(--disp);font-weight:400;font-size:1.2em"></b><button id="calNext">›</button></div>
+      <div class="cal" id="calGrid"></div>
+      <div class="muted" id="calStat"></div>
+    </div>
+    <div id="lvBox">
+      <div class="lbl">レベル</div>
+      <div class="lv"><button id="lvDown">−</button><b id="lvNum">1</b><button id="lvUp">＋</button></div>
+    </div>
     <div class="muted" id="lvInfo"></div>
     <button class="pri" id="btnSoloStart" style="font-size:17px">はじめる</button>
-    <div class="lbl">今日のランキング（このレベル）</div>
+    <div class="lbl" id="soloLbTitle">この日のランキング</div>
     <div class="lb" id="soloLb"><div class="muted">…</div></div>
     <div class="lbl">自分の記録</div>
     <div class="muted" id="soloBest"></div>
@@ -279,7 +296,7 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
     <div class="fieldcard" id="sgField"><small>場札</small></div>
     <div id="sgVerdict"></div>
     <div class="card">
-      <div class="row"><span class="lbl grow">手札（束ねる札をタップ）</span><span class="muted" id="sgSel"></span></div>
+      <div class="row"><span class="lbl grow">手札（束ねたい札をタップ）</span><span class="muted" id="sgSel"></span></div>
       <div class="hand" id="sgHandBox"></div>
     </div>
     <div class="card" id="sgAct">
@@ -294,8 +311,8 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
   <div id="vVs" class="card hidden">
     <div class="lbl">VSモード</div>
     <button class="pri" id="btnCreate" style="width:100%;font-size:17px">部屋をつくる（自分が主催）</button>
-    <div class="muted">できた4桁のコードを仲間に伝える。2〜8人（AI対戦相手を足して1人でも遊べる）。</div>
-    <div class="lbl" style="margin-top:6px">仲間の部屋に入る</div>
+    <div class="muted">できた4桁のコードを仲間に教えてください。2〜8人。AIを足せばひとりでも遊べます。</div>
+    <div class="lbl" style="margin-top:6px">仲間の部屋に入るなら</div>
     <div class="row">
       <input id="inCode" class="grow" maxlength="4" placeholder="部屋コード 4桁" inputmode="numeric" style="letter-spacing:.3em;font-size:20px;text-align:center">
       <button class="sec" id="btnJoin">参加</button>
@@ -329,13 +346,13 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
   <div id="vRank" class="hidden" style="display:flex;flex-direction:column;gap:14px">
     <div class="card">
       <div class="row"><div><div class="lbl">あなたのレート</div><div class="rate" id="myRate">----<small id="myRec"></small></div></div>
-        <div class="grow muted">初期レート1000。1対1・4ラウンドの合計点で勝負。強い相手に勝つほど上がり、弱い相手に負けるほど下がる。途中退室は負け扱いで通常の3倍減る。</div></div>
+        <div class="grow muted">1000からスタート。1対1、4ラウンドの合計点で勝負です。格上に勝つほど大きく上がり、格下に負けるほど大きく下がります。途中で抜けると負け扱いで3倍減るのでご注意を。</div></div>
       <div id="rankIdle">
         <button class="sec" id="btnFind" style="width:100%;font-size:17px">対戦相手を探す</button>
-        <div class="muted" style="margin-top:6px">20秒待って相手が見つからなければAI（レート1000）と対戦。</div>
+        <div class="muted" style="margin-top:6px">20秒待って誰も来なければAI（レート1000）が相手になります。</div>
       </div>
       <div id="rankSearch" class="search hidden">
-        <div class="dots" id="searchDots">探しています…</div>
+        <div class="dots" id="searchDots">相手を探し中…</div>
         <div class="muted" id="searchMsg"></div>
         <div class="row"><button class="pri" id="btnAiNow">今すぐAIと対戦</button><button id="btnCancelFind">やめる</button></div>
       </div>
@@ -367,7 +384,7 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
         <textarea id="inGenres" style="min-height:70px"></textarea>
       </details>
       <div class="row"><button id="btnAddCpu" class="grow">AI対戦相手を追加</button><button id="btnRemoveCpu" class="grow">AIを1人減らす</button></div>
-      <div class="muted">AIは主催者の端末からHaikuで動かします。1人でもAI相手にテストできます。</div>
+      <div class="muted">AIは主催者の端末で動きます。ひとりでもAI相手に遊べます。</div>
       <button class="pri" id="btnStart">ゲーム開始</button>
     </div>
     <div id="lobbyWait" class="muted">主催者の開始を待っています…</div>
@@ -944,7 +961,7 @@ async function tsuruExtra(idx){
 async function declare(ans,timeout){
   const s=clone(); if(s.tsuru!==me||s.phase!=='tsuru'||s.tsuruStage!=='declare')return;
   ans=(ans||'').trim();
-  if(timeout||!ans){ s.answer=ans||'（時間切れ）'; s.verdict={ok:false,genreOk:false,reason:'時間内に宣言できなかった'}; log(s,myName+'：宣言できず'); applyVerdict(s); }
+  if(timeout||!ans){ s.answer=ans||'（時間切れ）'; s.verdict={ok:false,genreOk:false,reason:'時間切れ'}; log(s,myName+'：宣言できず'); applyVerdict(s); }
   else { s.answer=ans; s.phase='judging'; s.judgeKey='t'+s.round+'-'+now(); log(s,myName+'の一声：「'+ans+'」'); }
   await save(s);
 }
@@ -1064,7 +1081,24 @@ function mulberry(seed){ let a=seed>>>0; return ()=>{ a=(a+0x6D2B79F5)>>>0; let 
 function hashStr(str){ let h=2166136261; for(const c of str){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
 function todayKey(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
 const SOLO_CFG={turns:n=>3+Math.floor((n-1)/4), hard:n=>n<=3?0:n<=6?0.15:n<=9?0.3:0.45, fieldHard:n=>n>=7?0.2:0, hand:n=>n+3};
-let G=null, soloLevel=1, soloDaily=true;
+let G=null, soloLevel=1, soloDaily=true, soloDate=todayKey(), calMonth=null;
+const SOLO_EPOCH='20261102';
+function dailyLevel(k){ return 2+(hashStr('stage-'+k)%5); }
+function keyOf(d){ return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+function fmtKey(k){ return parseInt(k.slice(4,6))+'月'+parseInt(k.slice(6,8))+'日'; }
+$('calPrev').onclick=()=>{calMonth.setMonth(calMonth.getMonth()-1);renderCal();}; $('calNext').onclick=()=>{calMonth.setMonth(calMonth.getMonth()+1);renderCal();};
+function renderCal(){
+  if(!calMonth){ const t=new Date(); calMonth=new Date(t.getFullYear(),t.getMonth(),1); }
+  const y=calMonth.getFullYear(), m=calMonth.getMonth(); $('calTitle').textContent=y+'年'+(m+1)+'月';
+  const o=soloSave(); const daily=o.daily||{}; const today=todayKey();
+  const first=new Date(y,m,1).getDay(), days=new Date(y,m+1,0).getDate();
+  let h=['日','月','火','水','木','金','土'].map(w=>`<div class="wd">${w}</div>`).join(''); for(let i=0;i<first;i++)h+='<div></div>';
+  let cleared=0, played=0;
+  for(let d=1;d<=days;d++){ const k=keyOf(new Date(y,m,d)); const r=daily[k]; const off=k<SOLO_EPOCH||k>today; if(r){played++; if(r.win)cleared++;}
+    h+=`<button class="d ${off?'off':''} ${r?(r.win?'ok':'ng'):''} ${k===soloDate?'sel':''} ${k===today?'today':''}" data-k="${k}" ${off?'disabled':''}>${d}<small>${off?'':(r?(r.win?'★':'×'):'LV'+dailyLevel(k))}</small></button>`; }
+  $('calGrid').innerHTML=h; $('calGrid').querySelectorAll('.d:not(.off)').forEach(b=>b.onclick=()=>{soloDate=b.dataset.k;soloUi();});
+  $('calStat').textContent=(m+1)+'月のクリア：'+cleared+'回（挑戦'+played+'日）';
+}
 try{ const o=JSON.parse(localStorage.getItem('tsuru.solo')||'{}'); soloLevel=o.level||1; }catch(e){}
 function soloSave(k,v){ let o={}; try{o=JSON.parse(localStorage.getItem('tsuru.solo')||'{}')}catch(e){} if(k)o[k]=v; try{localStorage.setItem('tsuru.solo',JSON.stringify(o))}catch(e){} return o; }
 $('btnModeSolo').onclick=()=>{ if(!getName())return; openSolo(); };
@@ -1075,30 +1109,36 @@ $('btnSoloStart').onclick=()=>startSolo();
 function openSolo(){ show('vSolo'); soloUi(); }
 function soloUi(){
   $('soloDaily').classList.toggle('on',soloDaily); $('soloFree').classList.toggle('on',!soloDaily);
-  $('soloModeMsg').textContent=soloDaily?'今日のお題：同じ日・同じレベルなら全員同じ札。スコアでランキング。':'フリー：毎回ランダム。ランキングには載らない。';
-  $('lvNum').textContent=soloLevel; const n=soloLevel;
-  $('lvInfo').textContent='手札'+SOLO_CFG.hand(n)+'枚を'+SOLO_CFG.turns(n)+'ターン以内に。難しい札 '+Math.round(SOLO_CFG.hard(n)*100)+'%';
-  const o=soloSave(); const best=(o.best||{})[n]; const cleared=o.cleared||0;
-  $('soloBest').textContent=(best?'LV'+n+' 最高スコア '+best+'　':'')+'クリア済み最高レベル：'+(cleared||'なし');
+  $('soloModeMsg').textContent=soloDaily?'今日のお題：日ごとに決まったステージ（LV2〜6）。みんな同じ札でスコアを競えます。過去の日も遊べます。':'フリー：毎回ちがう札で気楽に。ランキングには載りません。';
+  $('calBox').classList.toggle('hidden',!soloDaily); $('lvBox').classList.toggle('hidden',soloDaily);
+  if(soloDaily){ renderCal(); const n=dailyLevel(soloDate); const o=soloSave(); const r=(o.daily||{})[soloDate];
+    $('lvInfo').textContent=fmtKey(soloDate)+'のお題：LV'+n+'（手札'+SOLO_CFG.hand(n)+'枚を'+SOLO_CFG.turns(n)+'ターンで）'+(r?'　'+(r.win?'クリア済み':'未クリア')+'・最高'+r.score+'点':'');
+    $('btnSoloStart').textContent=(r?'もう一度挑戦':'はじめる')+'（'+fmtKey(soloDate)+'）'; $('soloLbTitle').textContent=fmtKey(soloDate)+'のランキング';
+  } else { $('lvNum').textContent=soloLevel; const n=soloLevel;
+    $('lvInfo').textContent='手札'+SOLO_CFG.hand(n)+'枚を'+SOLO_CFG.turns(n)+'ターン以内に。難しい札 '+Math.round(SOLO_CFG.hard(n)*100)+'%';
+    $('btnSoloStart').textContent='はじめる（LV'+n+'）'; }
+  const o=soloSave(); const best=(o.best||{})[soloLevel]; const cleared=o.cleared||0;
+  $('soloBest').textContent='フリー：クリア済み最高レベル '+(cleared||'なし')+(best?'　LV'+soloLevel+'の最高スコア '+best:'');
   soloLb();
 }
 async function soloLb(){
-  if(!soloDaily){ $('soloLb').innerHTML='<div class="muted">フリーはランキング対象外</div>'; return; }
-  try{ const sn=await fdb.ref('live/solo-'+todayKey()+'-'+soloLevel+'/scores').get(); const arr=[]; sn.forEach(c=>{arr.push({id:c.key,...c.val()});}); arr.sort((a,b)=>(b.score||0)-(a.score||0));
-    $('soloLb').innerHTML=arr.length?arr.slice(0,10).map((p,i)=>`<div class="r ${p.id===me?'me':''}"><span class="rk">${i+1}</span><span class="nm">${esc(p.name||'？')}</span><span class="muted">${p.win?'クリア':'未達'}</span><span class="pt">${p.score}</span></div>`).join(''):'<div class="muted">まだ誰も挑戦していない。一番乗りだ。</div>';
+  if(!soloDaily){ $('soloLb').innerHTML='<div class="muted">フリーはランキングに載りません</div>'; return; }
+  try{ const sn=await fdb.ref('live/solo-'+soloDate+'/scores').get(); const arr=[]; sn.forEach(c=>{arr.push({id:c.key,...c.val()});}); arr.sort((a,b)=>(b.score||0)-(a.score||0));
+    $('soloLb').innerHTML=arr.length?arr.slice(0,10).map((p,i)=>`<div class="r ${p.id===me?'me':''}"><span class="rk">${i+1}</span><span class="nm">${esc(p.name||'？')}</span><span class="muted">${p.win?'クリア':'未達'}</span><span class="pt">${p.score}</span></div>`).join(''):'<div class="muted">まだ誰も挑戦していません。一番乗りのチャンス！</div>';
   }catch(e){ $('soloLb').innerHTML='<div class="muted">ランキングを読み込めません</div>'; }
 }
 function startSolo(){
   if(!sample){ $('lvInfo').textContent='AIに接続できないため判定ができません。'; return; }
-  const n=soloLevel; const seed=soloDaily?hashStr(todayKey()+'-'+n):(Math.random()*4294967296)>>>0; const rng=mulberry(seed);
+  const n=soloDaily?dailyLevel(soloDate):soloLevel; const seed=soloDaily?hashStr('stage-'+soloDate+'-'+n):(Math.random()*4294967296)>>>0; const rng=mulberry(seed);
   const cond=DEFAULT_COND.split('\n').map(x=>x.trim()).filter(Boolean); const gen=DEFAULT_GENRE.split('\n').map(x=>x.trim()).filter(Boolean);
   const hardSet=new Set(HARD_NAMES); const normal=cond.filter(c=>!hardSet.has(c)), hard=cond.filter(c=>hardSet.has(c));
   const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a;};
-  G={level:n,daily:soloDaily,seed,turn:1,turns:SOLO_CFG.turns(n),score:0,hintUsed:false,hand:[],field:null,sel:new Set(),log:[],over:null,busy:false,
+  G={level:n,daily:soloDaily,date:soloDate,seed,turn:1,turns:SOLO_CFG.turns(n),score:0,hintUsed:false,hand:[],field:null,sel:new Set(),log:[],over:null,busy:false,
      normal:sh(normal),hard:sh(hard),genres:sh(gen),rng,hardRatio:SOLO_CFG.hard(n),fieldHard:SOLO_CFG.fieldHard(n),combos:[]};
   for(let i=0;i<SOLO_CFG.hand(n);i++) soloDraw();
   soloNewField();
   G.log.push('LV'+n+' 開始。手札'+G.hand.length+'枚を'+G.turns+'ターンで。');
+  $('sgVerdict').innerHTML=''; $('sgMsg').textContent=''; $('sgIn').value='';
   show('vSoloGame'); soloRender(); setTimeout(()=>$('sgIn')&&$('sgIn').focus(),100);
 }
 function soloDraw(){ // 手札にジャンルは1枚まで
@@ -1162,13 +1202,15 @@ function soloEndTurn(){
 }
 function soloFinish(){
   soloRender(); const win=G.over==='win';
-  const o=soloSave(); o.best=o.best||{}; if(win){ if(!o.best[G.level]||o.best[G.level]<G.score)o.best[G.level]=G.score; if((o.cleared||0)<G.level)o.cleared=G.level; } soloSave('best',o.best); soloSave('cleared',o.cleared||0);
+  const o=soloSave(); o.best=o.best||{}; o.daily=o.daily||{};
+  if(G.daily){ const r=o.daily[G.date]||{score:0,win:false}; r.win=r.win||win; r.score=Math.max(r.score,G.score); o.daily[G.date]=r; soloSave('daily',o.daily); }
+  else { if(win){ if(!o.best[G.level]||o.best[G.level]<G.score)o.best[G.level]=G.score; if((o.cleared||0)<G.level)o.cleared=G.level; } soloSave('best',o.best); soloSave('cleared',o.cleared||0); }
   const maxCombo=Math.max(0,...G.combos);
-  $('sgVerdict').innerHTML=`<div class="verdict ${win?'ok':'ng'}"><div class="ans">${win?'クリア！':'力尽きた…'}</div><div><b>スコア ${G.score}</b>　最大コンボ ${maxCombo}枚</div>${win&&G.level<30?'<div class="muted">次のレベルが解放された</div>':''}
-    <div class="row" style="margin-top:8px"><button class="pri grow" id="sgAgain">${win?'次のレベルへ':'もう一度'}</button><button class="grow" id="sgHome">ソリティア画面へ</button></div></div>`;
-  $('sgAgain').onclick=()=>{ if(win)soloLevel=Math.min(30,G.level+1); soloSave('level',soloLevel); startSolo(); }; $('sgHome').onclick=()=>{G=null;openSolo();};
+  $('sgVerdict').innerHTML=`<div class="verdict ${win?'ok':'ng'}"><div class="ans">${win?'クリア！':'力尽きた…'}</div><div><b>スコア ${G.score}</b>　最大コンボ ${maxCombo}枚</div>${win&&!G.daily&&G.level<30?'<div class="muted">次のレベルが解放されました</div>':''}
+    <div class="row" style="margin-top:8px"><button class="pri grow" id="sgAgain">${G.daily?'もう一度':win?'次のレベルへ':'もう一度'}</button><button class="grow" id="sgHome">ソリティア画面へ</button></div></div>`;
+  $('sgAgain').onclick=()=>{ if(!G.daily&&win)soloLevel=Math.min(30,G.level+1); soloSave('level',soloLevel); startSolo(); }; $('sgHome').onclick=()=>{G=null;openSolo();};
   sfx(win?'win':'round');
-  if(G.daily){ try{ fdb.ref('live/solo-'+todayKey()+'-'+G.level+'/scores/'+me).transaction(cur=>{ if(cur&&cur.score>=G.score)return; return {name:myName,score:G.score,win,ts:now()}; }); }catch(e){} }
+  if(G.daily){ try{ fdb.ref('live/solo-'+G.date+'/scores/'+me).transaction(cur=>{ if(cur&&cur.score>=G.score)return; return {name:myName,score:G.score,win,ts:now()}; }); }catch(e){} }
 }
 async function soloHint(){
   if(G.hintUsed||G.busy||G.over)return; G.busy=true; G.hintUsed=true; $('sgMsg').textContent='AIが考え中…'; soloRender();
@@ -1199,8 +1241,8 @@ async function openRank(){
 }
 async function loadLeaderboard(){
   try{ const sn=await fdb.ref('players').orderByChild('rating').limitToLast(10).get(); const arr=[]; sn.forEach(c=>{arr.push({id:c.key,...c.val()});}); arr.sort((a,b)=>(b.rating||0)-(a.rating||0));
-    $('lbBox').innerHTML=arr.length?arr.map((p,i)=>`<div class="r ${p.id===me?'me':''}"><span class="rk">${i+1}</span><span class="nm">${esc(p.name||'？')}</span><span class="muted">${p.wins||0}勝${p.losses||0}敗</span><span class="pt">${p.rating??1000}</span></div>`).join(''):'<div class="muted">まだ誰もいない。最初の挑戦者になろう。</div>';
-  }catch(e){ $('lbBox').innerHTML='<div class="muted">ランキングを読み込めません（Firebaseルールに players の設定が必要）</div>'; }
+    $('lbBox').innerHTML=arr.length?arr.map((p,i)=>`<div class="r ${p.id===me?'me':''}"><span class="rk">${i+1}</span><span class="nm">${esc(p.name||'？')}</span><span class="muted">${p.wins||0}勝${p.losses||0}敗</span><span class="pt">${p.rating??1000}</span></div>`).join(''):'<div class="muted">まだ誰もいません。一番乗りのチャンス！</div>';
+  }catch(e){ $('lbBox').innerHTML='<div class="muted">ランキングを読み込めませんでした</div>'; }
 }
 $('btnRankBack').onclick=()=>{cancelFind();show('vEntry');};
 $('btnFind').onclick=()=>findMatch();
@@ -1211,7 +1253,7 @@ async function findMatch(){
   const r=await myRating(); const qref=fdb.ref('queue/'+me);
   $('rankIdle').classList.add('hidden'); $('rankSearch').classList.remove('hidden'); $('searchMsg').textContent='';
   await qref.set({name:myName,rating:r.rating,ts:now(),match:null}); qref.onDisconnect().remove();
-  let left=20; $('searchDots').textContent='探しています… '+left; qTick=setInterval(()=>{left--; $('searchDots').textContent='探しています… '+Math.max(0,left);},1000);
+  let left=20; $('searchDots').textContent='相手を探し中… '+left; qTick=setInterval(()=>{left--; $('searchDots').textContent='相手を探し中… '+Math.max(0,left);},1000);
   qTimer=setTimeout(()=>startAiRank(),20000);
   let claiming=false;
   qUnsub=()=>{fdb.ref('queue').off('value',cb);};
@@ -1493,26 +1535,26 @@ function render(){
   if(S.phase==='play'){
     const deadline=S.turnStartAt+T_PLAY*1000;
     band.classList.toggle('mine',myTurnPlay);
-    band.innerHTML=`<h2>${myTurnPlay?'🔴 あなたの手番！':esc(cur.name)+' の手番'}</h2><div class="timer" id="tm"></div><div class="muted">場の条件すべて＋出す札を満たす言葉が20秒以内に浮かぶときだけ出せる</div>`;
+    band.innerHTML=`<h2>${myTurnPlay?'🔴 あなたの手番！':esc(cur.name)+' の手番'}</h2><div class="timer" id="tm"></div><div class="muted">場の条件ぜんぶ＋出す札、を満たす言葉が浮かんだら出せる（20秒）</div>`;
     runTimer(deadline,()=>{ if(myTurnPlay)pass(true); else if(isHost&&cur.cpu&&!S.tutorial){ const v0=S.v; setTimeout(async()=>{ if(S&&S.v===v0&&S.phase==='play'){ const s=clone(); cpuKey='timeout:'+v0; await cpuFallback(s); await save(s); } },5000); } });
     if(myTurnPlay){
       act.innerHTML=`<div class="row"><button class="pri grow" id="bPlay" ${selCard<0?'disabled':''}>選んだ札を出す</button><button class="grow" id="bPass">パス</button></div>`+
         (S.round===1&&!meP.mulliganed&&!S.table.length?`<button id="bMul">手札を全部引き直す（1回だけ）</button>`:'');
       $('bPlay').onclick=()=>{const i=selCard;selCard=-1;playCard(i);}; $('bPass').onclick=()=>pass(false);
       if($('bMul'))$('bMul').onclick=mulligan;
-    } else act.innerHTML=`<div class="muted">${meP.passed?'あなたはパス済み。':'手番を待っています。'}自分が出せそうな言葉を考えておこう。</div>`;
+    } else act.innerHTML=`<div class="muted">${meP.passed?'あなたはパス済み。':'手番待ち。'}出せそうな言葉を考えておこう。</div>`;
   }
   else if(S.phase==='tsuru'){
     const mine=S.tsuru===me; band.classList.toggle('mine',mine);
     if(S.tsuruStage==='extra'){
-      band.innerHTML=`<h2>${mine?'あなたが鶴':esc(pname(S,S.tsuru))+' が鶴'}</h2>`+(P(S,S.tsuru)&&P(S,S.tsuru).cpu?'':`<div class="timer" id="tm"></div>`)+`<div class="muted">一声の前に、手札から1枚だけ追加できる（任意・15秒）</div>`;
+      band.innerHTML=`<h2>${mine?'あなたが鶴':esc(pname(S,S.tsuru))+' が鶴'}</h2>`+(P(S,S.tsuru)&&P(S,S.tsuru).cpu?'':`<div class="timer" id="tm"></div>`)+`<div class="muted">言う前に、手札から1枚足せる（足さなくてもOK・15秒）</div>`;
       if(!(P(S,S.tsuru)&&P(S,S.tsuru).cpu)) runTimer(S.turnStartAt+15000,()=>{ if(mine)tsuruExtra(-1); });
       if(mine) act.innerHTML=`<div class="row"><button class="sec grow" id="bExtra" ${selCard<0?'disabled':''}>選んだ札を追加する</button><button class="pri grow" id="bNoExtra">追加せず宣言へ</button></div>`;
       if(!mine&&isHost&&P(S,S.tsuru)&&P(S,S.tsuru).cpu){ band.innerHTML+=`<div class="timer" id="tm" style="font-size:24px"></div>`; runTimer(S.turnStartAt+25000,()=>{ const v0=S.v; setTimeout(async()=>{ if(S&&S.v===v0&&S.phase==='tsuru'){ const s=clone(); cpuKey='timeout:'+v0; await cpuFallback(s); await save(s); } },3000); }); }
       if(mine){$('bExtra').onclick=()=>{const i=selCard;selCard=-1;tsuruExtra(i);}; $('bNoExtra').onclick=()=>tsuruExtra(-1);}
     } else {
       const deadline=S.turnStartAt+T_DECLARE*1000;
-      band.innerHTML=`<h2>鶴の一声</h2><div class="timer" id="tm"></div><div class="muted">${mine?'場の条件をすべて満たす言葉を1つ':esc(pname(S,S.tsuru))+' が宣言中'}</div>`;
+      band.innerHTML=`<h2>鶴の一声</h2><div class="timer" id="tm"></div><div class="muted">${mine?'場の条件ぜんぶを満たす言葉をひとつ':esc(pname(S,S.tsuru))+' が宣言中'}</div>`;
       runTimer(deadline,()=>{ if(mine)declare($('inAns')?$('inAns').value:'',true); else if(isHost&&P(S,S.tsuru)&&P(S,S.tsuru).cpu){ const v0=S.v; setTimeout(async()=>{ if(S&&S.v===v0&&S.phase==='tsuru'){ const s=clone(); cpuKey='timeout:'+v0; await cpuFallback(s); await save(s); } },5000); } });
       if(mine){ act.innerHTML=`<form id="fAns" class="row"><input id="inAns" class="grow" placeholder="答え" autocomplete="off"><button class="pri" type="submit">宣言</button></form>`;
         $('fAns').onsubmit=e=>{e.preventDefault();declare($('inAns').value,false);}; setTimeout(()=>$('inAns')&&$('inAns').focus(),50); }
@@ -1520,14 +1562,14 @@ function render(){
   }
   else if(S.phase==='judging'||S.phase==='stealJudging'){
     const ans=S.phase==='judging'?S.answer:S.stealAnswer;
-    band.innerHTML=`<h2>AI判定中…</h2><div class="muted">「${esc(ans)}」を審査しています${isHost?'（この端末で判定を実行中）':''}</div>`+(S.phase==='stealJudging'?orderStrip():'');
+    band.innerHTML=`<h2>AI判定中…</h2><div class="muted">「${esc(ans)}」を考え中${isHost?'（この端末で判定中）':''}</div>`+(S.phase==='stealJudging'?orderStrip():'');
     if(isHost&&!sample) act.innerHTML=`<div class="muted">AIに接続できません。${AI_PROXY_URL?'中継サーバーの設定を確認してください。':'右上の⚙からAPIキーを設定してください。'}</div>`;
   }
   else if(S.phase==='verdict'){
     const v=S.verdict; const n=S.table.length;
     vb.innerHTML=`<div class="verdict ${v.ok?'ok':'ng'}"><div class="lbl">${esc(pname(S,S.tsuru))} の一声</div><div class="ans">${esc(S.answer)}</div><div><b>${v.ok?'成功 +'+n+(v.genreOk?'　ジャンル +1':'　ジャンル未達'):'失敗 −'+n}</b></div><div class="muted">${esc(v.reason||'')}</div></div>`;
-    band.innerHTML=`<h2>判定</h2>`+(v.ok&&S.stealQueue.length?`<div>このあと同時解答（札を出した逆順）</div>${orderStrip()}`:'');
-    act.innerHTML=(isHost?`<button class="pri" id="bNext">${v.ok&&S.stealQueue.length?'同時解答へ':'ラウンド終了へ'}</button>`:`<div class="muted">主催者が進行します</div>`)+
+    band.innerHTML=`<h2>判定</h2>`+(v.ok&&S.stealQueue.length?`<div>このあと奪い合い（札を出した逆順）</div>${orderStrip()}`:'');
+    act.innerHTML=(isHost?`<button class="pri" id="bNext">${v.ok&&S.stealQueue.length?'同時解答へ':'ラウンド終了へ'}</button>`:`<div class="muted">主催者が進めます</div>`)+
       (canAppeal?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:`<div class="muted">このラウンドの異議は使用済み</div>`);
     if(isHost)$('bNext').onclick=proceedAfterVerdict;
     if(S.mode==='rank'){ band.innerHTML+=`<div class="timer" id="tm" style="font-size:24px"></div>`; runTimer(S.turnStartAt+12000,()=>{ if(isHost)proceedAfterVerdict(); }); }
@@ -1535,7 +1577,7 @@ function render(){
   }
   else if(S.phase==='steal'){
     const who=S.stealQueue[S.stealIdx]; const mine=who===me; const deadline=S.turnStartAt+T_STEAL*1000; band.classList.toggle('mine',mine);
-    band.innerHTML=`<h2>同時解答 ${S.stealIdx+1}/${S.stealQueue.length}：${mine?'あなたの番！':esc(pname(S,who))}</h2><div class="timer" id="tm"></div>${orderStrip()}<div class="muted">${mine?'鶴と違う答えで、場の条件すべてを満たす言葉を':esc(pname(S,who))+' が解答中'}　（鶴の答え「${esc(S.answer)}」は禁止／奪える札 残り${S.tsuruGained}）</div>`;
+    band.innerHTML=`<h2>同時解答 ${S.stealIdx+1}/${S.stealQueue.length}：${mine?'あなたの番！':esc(pname(S,who))}</h2><div class="timer" id="tm"></div>${orderStrip()}<div class="muted">${mine?'鶴と違う答えで、場の条件ぜんぶを満たす言葉を':esc(pname(S,who))+' が考え中'}　（鶴の答え「${esc(S.answer)}」はダメ／奪える札 あと${S.tsuruGained}）</div>`;
     runTimer(deadline,()=>{ if(mine)stealAnswerSubmit($('inSt')?$('inSt').value:'',true); else if(isHost&&P(S,who)&&P(S,who).cpu){ const v0=S.v; setTimeout(async()=>{ if(S&&S.v===v0&&S.phase==='steal'){ const s=clone(); cpuKey='timeout:'+v0; await cpuFallback(s); await save(s); } },5000); } });
     if(mine){ act.innerHTML=`<form id="fSt" class="row"><input id="inSt" class="grow" placeholder="別の答え" autocomplete="off"><button class="pri" type="submit">解答</button></form>`;
       $('fSt').onsubmit=e=>{e.preventDefault();stealAnswerSubmit($('inSt').value,false);}; setTimeout(()=>$('inSt')&&$('inSt').focus(),50); }
@@ -1543,8 +1585,8 @@ function render(){
   else if(S.phase==='stealVerdict'){
     const r=S.stealResults[S.stealResults.length-1];
     vb.innerHTML=`<div class="verdict ${r.ok?'ok':'ng'}"><div class="lbl">${esc(pname(S,r.by))} の同時解答</div><div class="ans">${esc(r.answer)}</div><div><b>${r.ok?'成功　札を1枚奪取'+(r.gotGenre?'　ジャンル +1':''):'不成立'}</b></div><div class="muted">${esc(r.reason||'')}</div></div>`;
-    band.innerHTML=`<h2>判定</h2>${orderStrip()}`+(S.stealIdx<S.stealQueue.length&&S.tsuruGained>0?`<div class="muted">次は ${esc(pname(S,S.stealQueue[S.stealIdx]))}</div>`:'<div class="muted">同時解答はここまで</div>');
-    act.innerHTML=(isHost?`<button class="pri" id="bNext2">次へ</button>`:`<div class="muted">主催者が進行します</div>`)+
+    band.innerHTML=`<h2>判定</h2>${orderStrip()}`+(S.stealIdx<S.stealQueue.length&&S.tsuruGained>0?`<div class="muted">次は ${esc(pname(S,S.stealQueue[S.stealIdx]))}</div>`:'<div class="muted">奪い合いはここまで</div>');
+    act.innerHTML=(isHost?`<button class="pri" id="bNext2">次へ</button>`:`<div class="muted">主催者が進めます</div>`)+
       (canAppeal?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:'');
     if(isHost)$('bNext2').onclick=proceedAfterSteal;
     if(S.mode==='rank'){ band.innerHTML+=`<div class="timer" id="tm" style="font-size:24px"></div>`; runTimer(S.turnStartAt+12000,()=>{ if(isHost)proceedAfterSteal(); }); }
@@ -1552,10 +1594,10 @@ function render(){
   }
   else if(S.phase==='roundEnd'){
     band.classList.toggle('mine',swapMode);
-    band.innerHTML=`<h2>第${S.round}ラウンド終了</h2><div>${swapMode?'いらない札を選んで交換できる（このラウンド1回）。交換しなくてもOK。次のラウンド開始時に5枚まで補充。':meP.swapped?'交換済み。次のラウンド開始時に5枚まで補充。':'次のラウンド開始時に手札を5枚まで補充。'}</div>`;
+    band.innerHTML=`<h2>第${S.round}ラウンド終了</h2><div>${swapMode?'いらない札を選んで交換できます（1回）。しなくてもOK。次のラウンドで5枚まで補充されます。':meP.swapped?'交換済み。次のラウンドで5枚まで補充されます。':'次のラウンドで手札を5枚まで補充されます。'}</div>`;
     const waiting=S.players.filter(p=>!p.cpu&&!p.swapped).map(p=>p.name);
     act.innerHTML=(swapMode?`<div class="row"><button class="sec grow" id="bSwap" ${swapSel.size?'':'disabled'}>選んだ${swapSel.size}枚を交換</button><button class="grow" id="bNoSwap">交換しない</button></div>`:'')+
-      (isHost?`<button class="pri" id="bRound">次のラウンドへ</button>${waiting.length?`<div class="muted">交換を迷い中：${esc(waiting.join('、'))}</div>`:''}`:`<div class="muted">主催者が次のラウンドを始めます</div>`);
+      (isHost?`<button class="pri" id="bRound">次のラウンドへ</button>${waiting.length?`<div class="muted">交換を迷ってる人：${esc(waiting.join('、'))}</div>`:''}`:`<div class="muted">主催者が次のラウンドを始めます</div>`);
     if(swapMode){$('bSwap').onclick=()=>{const idx=[...swapSel];swapSel.clear();swapCards(idx);}; $('bNoSwap').onclick=async()=>{const s=clone();P(s,me).swapped=true;await save(s);};}
     if(isHost)$('bRound').onclick=nextRound;
     if(S.mode==='rank'){ const deadline=S.turnStartAt+25000; band.innerHTML+=`<div class="timer" id="tm" style="font-size:24px"></div>`; runTimer(deadline,()=>{ if(isHost)nextRound(); }); }
@@ -1571,7 +1613,7 @@ function render(){
   }
   else if(S.phase==='over'){
     band.innerHTML=`<h2>${esc(pname(S,S.winner))} の勝利！</h2><div class="muted">${S.target}点に到達</div>`;
-    act.innerHTML=isHost?`<button class="pri" id="bAgain">同じメンバーでもう一局（ロビーへ）</button>`:'<div class="muted">お疲れさまでした</div>';
+    act.innerHTML=isHost?`<button class="pri" id="bAgain">同じメンバーでもう一局（ロビーへ）</button>`:'<div class="muted">おつかれさま！</div>';
     if(isHost)$('bAgain').onclick=async()=>{const s=clone();s.phase='lobby';s.round=0;s.players.forEach(p=>{p.score=0;p.hand=[]});s.log=['再戦'];await save(s);};
   }
 }
