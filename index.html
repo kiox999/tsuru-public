@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v4.7";
+const APP_VER = "v4.8";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -1084,7 +1084,7 @@ const SOLO_CFG={turns:n=>3+Math.floor(n/2), hard:n=>n<=3?0:n<=6?0.15:n<=9?0.3:0.
 const BROAD_FIELD=['赤い','青い','白い','黒い','黄色い','丸い','大きい','小さい','長い','速い','遅い','重い','軽い','硬い','柔らかい','冷たい','熱い','甘い','食べられる','飲める','生きている','家の中にある','学校にある','コンビニで買える','動物','植物','乗り物','道具','食べ物','かわいい','かっこいい','便利','危ない','古い','新しい','明るい','暗い','水に関係する','夏を連想させる','冬を連想させる','子どもに人気','毎日使う','おいしい','強い','おしゃれ','有名'];
 let G=null, soloLevel=1, soloDaily=true, soloDate=todayKey(), calMonth=null;
 const SOLO_EPOCH='20261102';
-function dailyLevel(k){ return 2+(hashStr('stage-'+k)%5); }
+function dailyLevel(k){ return 4+(hashStr('stage-'+k)%4); }
 function keyOf(d){ return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
 function fmtKey(k){ return parseInt(k.slice(4,6))+'月'+parseInt(k.slice(6,8))+'日'; }
 $('calPrev').onclick=()=>{ if(!calMonth)return; const d=new Date(calMonth); d.setMonth(d.getMonth()-1); if(keyOf(new Date(d.getFullYear(),d.getMonth()+1,0))<SOLO_EPOCH)return; calMonth=d; renderCal(); };
@@ -1112,7 +1112,7 @@ $('btnSoloStart').onclick=()=>startSolo();
 function openSolo(){ show('vSolo'); soloUi(); }
 function soloUi(){
   $('soloDaily').classList.toggle('on',soloDaily); $('soloFree').classList.toggle('on',!soloDaily);
-  $('soloModeMsg').textContent=soloDaily?'今日のお題：日ごとに決まったステージ（LV2〜6）。みんな同じ札でスコアを競えます。過去の日も遊べます。':'フリー：毎回ちがう札で気楽に。ランキングには載りません。';
+  $('soloModeMsg').textContent=soloDaily?'今日のお題：日ごとに決まったステージ（LV4〜7）。AIヒントは使えません。みんな同じ札でスコアを競えます。過去の日も遊べます。':'フリー：毎回ちがう札で気楽に。ランキングには載りません。';
   $('calBox').classList.toggle('hidden',!soloDaily); $('lvBox').classList.toggle('hidden',soloDaily);
   if(soloDaily){ renderCal(); const n=dailyLevel(soloDate); const o=soloSave(); const r=(o.daily||{})[soloDate];
     $('lvInfo').textContent=fmtKey(soloDate)+'のお題：LV'+n+'（手札'+SOLO_CFG.hand(n)+'枚を'+SOLO_CFG.turns(n)+'ターンで）'+(r?'　'+(r.win?'クリア済み':'未クリア')+'・最高'+r.score+'点':'');
@@ -1162,7 +1162,7 @@ function soloRender(){
   $('sgHandBox').innerHTML=G.hand.map((c,i)=>`<button class="hcard ${G.sel.has(i)?'sel':''} ${c.genre?'genre':''} ${c.hard?'hard':''}" data-i="${i}" ${G.over||G.busy?'disabled':''}>${c.genre?'ジャンル：':''}${esc(c.t)}</button>`).join('');
   $('sgHandBox').querySelectorAll('.hcard').forEach(b=>b.onclick=()=>{const i=+b.dataset.i; G.sel.has(i)?G.sel.delete(i):G.sel.add(i); soloRender();});
   $('sgSel').textContent=G.sel.size?G.sel.size+'枚選択（場札＋'+G.sel.size+'条件）':'';
-  $('sgDeclare').disabled=!G.sel.size||G.busy||!!G.over; $('sgPass').disabled=G.busy||!!G.over; $('sgHint').disabled=G.hintUsed||G.busy||!!G.over;
+  $('sgDeclare').disabled=!G.sel.size||G.busy||!!G.over; $('sgPass').disabled=G.busy||!!G.over; $('sgHint').disabled=G.hintUsed||G.busy||!!G.over||G.daily; $('sgHint').classList.toggle('hidden',!!G.daily);
   $('sgLog').innerHTML=G.log.slice().reverse().map(x=>`<div>${esc(x)}</div>`).join('');
   $('sgAct').classList.toggle('hidden',!!G.over);
 }
@@ -1218,7 +1218,7 @@ function soloFinish(){
   if(G.daily){ try{ fdb.ref('live/solo-'+G.date+'/scores/'+me).transaction(cur=>{ if(cur&&cur.score>=G.score)return; return {name:myName,score:G.score,win,ts:now()}; }); }catch(e){} }
 }
 async function soloHint(){
-  if(G.hintUsed||G.busy||G.over)return; G.busy=true; G.hintUsed=true; $('sgMsg').textContent='AIが考え中…'; soloRender();
+  if(G.hintUsed||G.busy||G.over||G.daily)return; G.busy=true; G.hintUsed=true; $('sgMsg').textContent='AIが考え中…'; soloRender();
   const prompt=`言葉遊びゲームのヒントを出してください。場札の条件と、手札の条件から1〜3枚を選び、それらすべてを同時に満たす実在する言葉を1つ挙げてください。できるだけ多くの札を使えるものを優先。造語は不可。
 場札: ${condText(G.field)}
 手札:
