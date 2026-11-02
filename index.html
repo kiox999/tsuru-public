@@ -597,9 +597,12 @@ async function aiJson(prompt,opts){
   const r=AI_PROXY_URL
     ? await fetch(AI_PROXY_URL,{method:'POST',headers:{'content-type':'application/json'},body:payload})
     : await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:payload});
-  if(!r.ok){ const t=await r.text(); throw {code:'http_'+r.status,message:t.slice(0,200)}; }
-  const j=await r.json(); const text=(j.content||[]).map(c=>c.text||'').join('');
-  const a=text.indexOf('{'), b=text.lastIndexOf('}'); if(a<0||b<0) throw {code:'invalid_json',message:text};
+  const raw=await r.text();
+  if(!r.ok){ throw {code:'http_'+r.status,message:raw.slice(0,120)}; }
+  let j; try{ j=JSON.parse(raw); }catch(e){ throw {code:'bad_response',message:raw.slice(0,80)}; }
+  if(j.type==='error') throw {code:'api_error',message:(j.error&&j.error.message||'').slice(0,120)};
+  const text=(j.content||[]).map(c=>c.text||'').join('');
+  const a=text.indexOf('{'), b=text.lastIndexOf('}'); if(a<0||b<0) throw {code:'invalid_json',message:text.slice(0,80)};
   return JSON.parse(text.slice(a,b+1));
 }
 
@@ -881,7 +884,8 @@ $('btnRemoveCpu').onclick=async()=>{ const s=clone(); const i=s.players.map(p=>p
 let cpuKey='';
 function tableText(s){return s.table.map((t,i)=>(i+1)+'. '+s.condDeck[t.card]).join('\n')||'（まだ無し）';}
 function handText(s,p){return p.hand.map((c,i)=>i+': '+s.condDeck[c]).join('\n');}
-async function ask(prompt){ try{ return await sample(prompt,{model:'haiku'}); }catch(e){ console.warn(e); return null; } }
+let aiErr='';
+async function ask(prompt){ if(!sample){aiErr='AI未接続';return null;} try{ aiErr=''; return await sample(prompt,{model:'haiku'}); }catch(e){ console.warn(e); aiErr=(e.code||'error')+(e.message?'：'+String(e.message).slice(0,80):''); return null; } }
 async function maybeCpu(){
   if(!S||S.hostId!==me||!sample)return;
   let actor=null;
@@ -904,7 +908,7 @@ JSONのみで回答: {"play": 手札の番号（数値）またはnull, "word": 
     const s=clone(); const p=s.players[s.turnIdx];
     const idx=r&&r.play!==null&&r.play!==undefined?parseInt(r.play):-1;
     if(idx>=0&&idx<p.hand.length){ const card=p.hand.splice(idx,1)[0]; s.table.push({card,by:p.id}); log(s,p.name+'：「'+s.condDeck[card]+'」を出した'); p.lastWord=String(r.word||''); }
-    else { p.passed=true; log(s,p.name+'：パス'); }
+    else { p.passed=true; log(s,p.name+'：パス'+(aiErr?'（AIエラー：'+aiErr+'）':'')); }
     nextTurn(s); await save(s);
   }
   else if(S.phase==='tsuru'){
@@ -921,7 +925,7 @@ JSONのみで回答: {"extra": 追加する手札の番号（数値）またはn
     const idx=r&&r.extra!==null&&r.extra!==undefined?parseInt(r.extra):-1;
     if(idx>=0&&idx<p.hand.length){ const card=p.hand.splice(idx,1)[0]; s.table.push({card,by:p.id}); log(s,p.name+'：鶴の追加札「'+s.condDeck[card]+'」'); }
     const ans=r&&String(r.answer||'').trim();
-    if(!ans){ s.answer='（宣言できず）'; s.verdict={ok:false,genreOk:false,reason:'AIが答えを出せなかった'}; log(s,p.name+'：宣言できず'); applyVerdict(s); }
+    if(!ans){ s.answer='（宣言できず）'; s.verdict={ok:false,genreOk:false,reason:'AIが答えを出せなかった'+(aiErr?'（'+aiErr+'）':'')}; log(s,p.name+'：宣言できず'); applyVerdict(s); }
     else { s.answer=ans; s.phase='judging'; s.judgeKey='t'+s.round+'-'+now(); log(s,p.name+'の一声：「'+ans+'」'); }
     await save(s);
   }
@@ -935,7 +939,7 @@ JSONのみで回答: {"answer": "別の言葉" またはnull}`);
     if(!S||S.phase+':'+S.v!==key)return;
     const s=clone(); const p=P(s,s.stealQueue[s.stealIdx]);
     const ans=r&&r.answer?String(r.answer).trim():'';
-    if(!ans||ans===s.answer){ s.stealResults.push({by:p.id,answer:'（解答なし）',ok:false}); log(s,p.name+'：同時解答なし'); s.stealIdx++; advanceSteal(s); }
+    if(!ans||ans===s.answer){ s.stealResults.push({by:p.id,answer:'（解答なし）',ok:false}); log(s,p.name+'：同時解答なし'+(aiErr?'（AIエラー：'+aiErr+'）':'')); s.stealIdx++; advanceSteal(s); }
     else { s.stealAnswer=ans; s.phase='stealJudging'; s.judgeKey='s'+s.round+'-'+s.stealIdx+'-'+now(); log(s,p.name+'の同時解答：「'+ans+'」'); }
     await save(s);
   }
@@ -966,7 +970,7 @@ ${S.appeal?`\n※他プレイヤーから異議: 「${S.appeal.text}」。この
 existsがfalseならokも必ずfalseにしてください。`;
   const key=S.judgeKey; let v;
   try{ v=await sample(prompt,{model:S.judgeModel}); }
-  catch(e){ v={ok:false,genreOk:false,reason:'AI判定に失敗（'+(e.code||'error')+'）。異議で再判定できます'}; }
+  catch(e){ console.warn('judge',e); v={ok:false,genreOk:false,reason:'AI判定に失敗（'+(e.code||'error')+(e.message?'：'+String(e.message).slice(0,60):'')+'）。異議で再判定できます'}; }
   if(!S||S.judgeKey!==key)return;
   const s=clone(); if(!['judging','stealJudging'].includes(s.phase))return;
   const vv={ok:!!v.ok,genreOk:!!v.genreOk,reason:String(v.reason||'').slice(0,80)};
