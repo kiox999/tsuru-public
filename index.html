@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v3.6";
+const APP_VER = "v4.1";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -126,6 +126,15 @@ textarea{min-height:120px;resize:vertical}
 :root[data-size="s"]{font-size:0.87em}:root[data-size="m"]{font-size:1em}:root[data-size="l"]{font-size:1.2em}:root[data-size="xl"]{font-size:1.4em}
 body{font-size:1rem}
 .hcard{font-size:1.05em}.cond{font-size:1.05em}
+/* 横並びの得点 */
+.players.horiz{flex-direction:row;flex-wrap:wrap;gap:8px;align-items:stretch}
+.players.horiz .pl{flex:1 1 calc(25% - 8px);min-width:96px;max-width:100%;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px}
+.players.horiz .pl .nm{width:100%;font-size:0.93em}
+.players.horiz .pl .sc{font-size:1.6em;text-align:left;min-width:0;line-height:1.1}
+.players.horiz .pl .tag{font-size:0.7em;padding:1px 6px}
+.players.horiz .pl .tags{display:flex;flex-wrap:wrap;gap:3px}
+.players.horiz .bub{left:6px;top:-4px;max-width:calc(100vw - 60px);white-space:normal;line-height:1.3}
+@media(max-width:480px){.players.horiz .pl{flex-basis:calc(50% - 8px)}}
 /* チュートリアル */
 .coach{position:fixed;left:max(12px,env(safe-area-inset-left,0px));right:max(12px,env(safe-area-inset-right,0px));bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:60;background:var(--ink);color:var(--bg);border-radius:16px;padding:12px 14px;box-shadow:0 6px 0 var(--kin);max-width:720px;margin:0 auto;display:flex;flex-direction:column;gap:8px;font-weight:700;line-height:1.5}
 .coach .ct::before{content:"🐦 ";}
@@ -141,6 +150,25 @@ body.tut .wrap{padding-bottom:150px}
 .mode b{font-family:var(--disp);font-weight:400;font-size:1.2em;color:var(--shu)}
 .mode.rank b{color:var(--ai)}
 .mode.tut b{color:var(--ok)}
+.mode.solo b{color:var(--kin)}
+/* ソリティア */
+.fieldcard{border:3px solid var(--ink);border-radius:16px;padding:18px 16px;background:var(--kin-soft);text-align:center;font-family:var(--disp);font-size:1.6em;box-shadow:5px 5px 0 var(--kin)}
+.fieldcard small{display:block;font-family:var(--body);font-size:.5em;color:var(--mute);font-weight:700;letter-spacing:.2em}
+.hcard.genre{background:var(--ai-soft);border-color:var(--ai)}
+.hcard.hard::after{content:"難";position:absolute;top:4px;right:6px;font-size:.7em;color:var(--shu);font-weight:900}
+.stat{display:flex;gap:10px;flex-wrap:wrap}
+.stat div{flex:1 1 70px;text-align:center;border:2px solid var(--line);border-radius:12px;padding:6px}
+.stat b{display:block;font-family:var(--disp);font-size:1.5em;color:var(--ai);font-weight:400}
+.stat small{color:var(--mute);font-weight:700;letter-spacing:.1em}
+.combo{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:70}
+.combo span{font-family:var(--disp);font-size:clamp(2.5em,12vw,5em);color:var(--shu);text-shadow:4px 4px 0 var(--kin),8px 8px 0 var(--ink);animation:comboIn 1.4s ease-out forwards;transform:rotate(-6deg)}
+@keyframes comboIn{0%{transform:scale(.2) rotate(-20deg);opacity:0}25%{transform:scale(1.15) rotate(-6deg);opacity:1}40%{transform:scale(1) rotate(-6deg)}80%{opacity:1}100%{opacity:0;transform:scale(1.1) rotate(-6deg) translateY(-30px)}}
+.lv{display:flex;align-items:center;gap:10px;justify-content:center}
+.lv b{font-family:var(--disp);font-size:2.2em;color:var(--ai);min-width:2em;text-align:center;font-weight:400}
+.lv button{min-width:46px}
+.seg{display:flex;border:2px solid var(--ink);border-radius:12px;overflow:hidden}
+.seg button{flex:1;border:0;border-radius:0;box-shadow:none;min-height:40px}
+.seg button.on{background:var(--ai);color:#fff}
 .mode.set b{color:var(--mute)}
 .mode small{color:var(--mute);font-weight:500;line-height:1.4}
 .rate{font-family:var(--disp);font-size:2.67em;color:var(--ai);line-height:1}
@@ -200,10 +228,11 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
     <div class="lbl">名前</div>
     <input id="inName" maxlength="12" placeholder="ニックネーム">
     <div class="modes">
-      <button class="mode" id="btnModeVs"><b>VSモード</b><small>3〜8人でわいわい。部屋コードで集まる。AI対戦相手も追加できる。</small></button>
+      <button class="mode" id="btnModeVs"><b>VSモード</b><small>2〜8人でわいわい。部屋コードで集まる。AI対戦相手も追加できる。</small></button>
       <button class="mode rank" id="btnModeRank"><b>ガチンコモード</b><small>1対1のレート戦。4ラウンド勝負、勝てばレートが上がる。相手がいなければAIと対戦。</small></button>
+      <button class="mode solo" id="btnModeSolo"><b>ソリティア</b><small>1人用。場札と手札を組み合わせて言葉を作り、手札を全部消す。今日のお題で競える。</small></button>
       <button class="mode tut" id="btnTut"><b>はじめての方はこちら</b><small>練習しながらルールを覚える。1人・約3分。</small></button>
-      <button class="mode set" id="btnModeSet"><b>設定</b><small>文字の種類・大きさ、音量など。</small></button>
+      <button class="mode set" id="btnModeSet" style="grid-column:1/-1"><b>設定</b><small>文字の種類・大きさ、音量、スタンプの選択。</small></button>
     </div>
     <div id="entryMsg" class="muted">アカウント登録は不要。名前だけ決めて遊べます。</div>
     <details id="keyBox"><summary>AI設定（主催者のみ必要）</summary>
@@ -225,11 +254,47 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
     </details>
   </div>
 
+  <!-- ソリティア 入口 -->
+  <div id="vSolo" class="card hidden">
+    <div class="lbl">ソリティア</div>
+    <div class="muted">場札1枚＋手札を何枚でも束ねて、全部を満たす言葉を宣言。成功した分だけ手札が減る。規定ターン以内に手札を空にできれば勝ち。失敗すると手札が戻って＋2枚、パスは＋1枚で場札交換。</div>
+    <div class="seg"><button id="soloDaily" class="on">今日のお題</button><button id="soloFree">フリー</button></div>
+    <div class="muted" id="soloModeMsg">今日のお題：同じ日・同じレベルなら全員同じ札。スコアでランキング。</div>
+    <div class="lbl">レベル</div>
+    <div class="lv"><button id="lvDown">−</button><b id="lvNum">1</b><button id="lvUp">＋</button></div>
+    <div class="muted" id="lvInfo"></div>
+    <button class="pri" id="btnSoloStart" style="font-size:17px">はじめる</button>
+    <div class="lbl">今日のランキング（このレベル）</div>
+    <div class="lb" id="soloLb"><div class="muted">…</div></div>
+    <div class="lbl">自分の記録</div>
+    <div class="muted" id="soloBest"></div>
+    <button id="btnSoloBack">戻る</button>
+  </div>
+
+  <!-- ソリティア 対局 -->
+  <div id="vSoloGame" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+    <div class="card">
+      <div class="stat"><div><small>LV</small><b id="sgLv"></b></div><div><small>ターン</small><b id="sgTurn"></b></div><div><small>手札</small><b id="sgHand"></b></div><div><small>スコア</small><b id="sgScore"></b></div></div>
+    </div>
+    <div class="fieldcard" id="sgField"><small>場札</small></div>
+    <div id="sgVerdict"></div>
+    <div class="card">
+      <div class="row"><span class="lbl grow">手札（束ねる札をタップ）</span><span class="muted" id="sgSel"></span></div>
+      <div class="hand" id="sgHandBox"></div>
+    </div>
+    <div class="card" id="sgAct">
+      <form id="sgForm" class="row"><input id="sgIn" class="grow" placeholder="場札＋選んだ札を満たす言葉" autocomplete="off"><button class="pri" type="submit" id="sgDeclare">宣言</button></form>
+      <div class="row"><button class="grow" id="sgPass">パス（＋1枚・場札交換）</button><button class="grow sec" id="sgHint">AIヒント（1回・＋1枚）</button></div>
+      <div id="sgMsg" class="muted"></div>
+    </div>
+    <div class="card"><div class="lbl">記録</div><div class="log" id="sgLog"></div><button id="btnSoloQuit">やめる</button></div>
+  </div>
+
   <!-- VS入口 -->
   <div id="vVs" class="card hidden">
     <div class="lbl">VSモード</div>
     <button class="pri" id="btnCreate" style="width:100%;font-size:17px">部屋をつくる（自分が主催）</button>
-    <div class="muted">できた4桁のコードを仲間に伝える。3〜8人（AI対戦相手を足して1人でも遊べる）。</div>
+    <div class="muted">できた4桁のコードを仲間に伝える。2〜8人（AI対戦相手を足して1人でも遊べる）。</div>
     <div class="lbl" style="margin-top:6px">仲間の部屋に入る</div>
     <div class="row">
       <input id="inCode" class="grow" maxlength="4" placeholder="部屋コード 4桁" inputmode="numeric" style="letter-spacing:.3em;font-size:20px;text-align:center">
@@ -285,7 +350,7 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
   <!-- ロビー -->
   <div id="vLobby" class="card hidden">
     <div class="row"><div><div class="lbl">部屋コード</div><div class="code" id="lobbyCode"></div></div>
-      <div class="grow muted">このコードを伝えて参加してもらう。3〜8人。</div></div>
+      <div class="grow muted">このコードを伝えて参加してもらう。2〜8人。</div></div>
     <div class="lbl">参加者</div>
     <div class="players" id="lobbyPlayers"></div>
     <div id="hostCtl" class="hidden" style="display:flex;flex-direction:column;gap:10px">
@@ -312,6 +377,9 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
   <!-- 対局 -->
   <div id="coach" class="coach hidden"><div class="ct" id="coachTxt"></div><div class="row" id="coachBtns"></div></div>
   <div id="vGame" class="hidden" style="display:flex;flex-direction:column;gap:14px">
+    <div class="card" style="padding-top:34px">
+      <div class="players horiz" id="gamePlayers"></div>
+    </div>
     <div class="card">
       <div class="row"><span class="lbl">第<span id="rnd"></span>ラウンド　ジャンル</span><span class="genre" id="genreBox"></span></div>
       <div class="lbl">場の条件</div>
@@ -326,11 +394,6 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
     <div class="card">
       <div class="row"><span class="lbl grow">手札</span><span class="muted" id="deckInfo"></span></div>
       <div class="hand" id="handBox"></div>
-    </div>
-
-    <div class="card">
-      <div class="lbl">得点</div>
-      <div class="players" id="gamePlayers"></div>
     </div>
 
     <div class="card">
@@ -774,7 +837,7 @@ $('btnLeave').onclick=$('btnQuit').onclick=async()=>{
 };
 let quitArmed=false;
 function clone(){return JSON.parse(JSON.stringify(S))}
-function show(v){['vEntry','vLobby','vGame','vRank','vVs','vSet'].forEach(x=>$(x).classList.toggle('hidden',x!==v)); $('btnStamp').classList.toggle('hidden',v!=='vGame');}
+function show(v){['vEntry','vLobby','vGame','vRank','vVs','vSet','vSolo','vSoloGame'].forEach(x=>$(x).classList.toggle('hidden',x!==v)); $('btnStamp').classList.toggle('hidden',v!=='vGame');}
 $('btnModeVs').onclick=()=>{ if(!getName())return; $('vsMsg').textContent=''; show('vVs'); };
 $('btnVsBack').onclick=()=>show('vEntry');
 $('btnModeRank').onclick=()=>{ if(!getName())return; openRank(); };
@@ -967,9 +1030,9 @@ let tutCpuKey='';
 function tutCoach(){
   const n=S.table.length, cur=S.players[S.turnIdx], mine=cur&&cur.id===me;
   if(S.phase==='play'){
-    if(n===0&&!mine){ coach('ここは練習卓。相手は<b>鶴丸</b>。ラウンド最初に<b>ジャンル</b>（今回は食べ物）が出るけど、これは<b>おまけ</b>。合えば＋1点、合わなくてもOK。<br>まず鶴丸が札を出すよ。'); spot('genreBox'); tutScript('p1'); }
+    if(n===0&&!mine){ coach('ここは練習卓。相手は<b>鶴丸</b>。ラウンド最初に<b>ジャンル</b>（今回は食べ物）が出るけど、これは<b>おまけ</b>。合えば＋1点、合わなくてもOK。<br>読めたら、鶴丸に札を出してもらおう。',[['鶴丸、どうぞ',()=>tutScript('p1')]]); spot('genreBox'); }
     else if(n===1&&mine){ coach('<b>あなたの番</b>。出せるのは「場の条件＋自分の札」をぜんぶ満たす言葉が浮かんだときだけ。<br>「赤い」＋<b>「丸い」</b>なら…りんご、トマト。いけそう！手札の「丸い」をタップして「出す」。'); spot('handBox'); }
-    else if(!mine&&n>=2){ coach('鶴丸は何も浮かばなかったみたい。これが<b>パス</b>。パスしたらそのラウンドはもう出せない。'); spot('gamePlayers'); tutScript('p2'); }
+    else if(!mine&&n>=2){ coach('鶴丸の番。「赤い・丸い」に自分の札を足しても何も浮かばなかったみたい。これが<b>パス</b>。パスしたらそのラウンドはもう出せない。',[['鶴丸、パス',()=>tutScript('p2')]]); spot('gamePlayers'); }
     else if(mine&&n>=2){ coach('まだ重ねてもいいけど、条件が増えるほど難しくなる。ここは<b>パス</b>で様子見しよう。'); spot('actBox'); }
     else { coach('手番を進めよう。'); spot('actBox'); }
   }
@@ -979,7 +1042,7 @@ function tutCoach(){
   }
   else if(S.phase==='judging'){ coach('審判AIが考え中…'); spot('band'); }
   else if(S.phase==='verdict'){ const v=S.verdict; coach(v.ok?'<b>成功！</b> 場の札の枚数ぶんが得点、ジャンルも合えば＋1。<br>納得いかない判定には<b>異議あり</b>で言い分を添えると、AIが考え直す（ラウンド1回）。<br>次は「カードの奪い合い」。':'<b>失敗…</b> 場の札の枚数ぶんマイナス。<br>判定がおかしいと思ったら<b>異議あり</b>で再判定できる（ラウンド1回）。'); spot('verdictBox'); }
-  else if(S.phase==='steal'){ coach('<b>同時解答（奪い合い）</b>。鶴が成功したときだけ発生。このラウンドに<b>1枚でも札を出した人</b>が、出した逆順に、鶴と<b>違う答え</b>を言う。当たれば鶴の札を1枚もらえる。<br>鶴丸は「赤い」を出してるので参加できる。見てて。'); spot('gamePlayers'); tutScript('steal'); }
+  else if(S.phase==='steal'){ coach('<b>同時解答（奪い合い）</b>。鶴が成功したときだけ発生。このラウンドに<b>1枚でも札を出した人</b>が、出した逆順に、鶴と<b>違う答え</b>を言う。当たれば鶴の札を1枚もらえる。<br>鶴丸は「赤い」を出してるので参加できる。',[['鶴丸の答えを見る',()=>tutScript('steal')]]); spot('gamePlayers'); }
   else if(S.phase==='stealJudging'){ coach('鶴丸の答えをAIが判定中…'); spot('band'); }
   else if(S.phase==='stealVerdict'){ const r=S.stealResults[S.stealResults.length-1]; coach(r&&r.ok?'鶴丸が成功。あなたの札を<b>1枚奪われた</b>（得点を見て）。このドキドキが奪い合い。':'鶴丸は不成立。奪われずに済んだ。'); spot('gamePlayers'); }
   else if(S.phase==='roundEnd'){ coach('ラウンド終了。いらない手札を選んで<b>交換</b>できる。先に<b>20点</b>取った人の勝ち。<br>練習はここまで。本番でお会いしましょう🐦',[['本番へ',()=>leave()]]); spot('handBox'); }
@@ -987,13 +1050,141 @@ function tutCoach(){
 }
 async function tutScript(step){
   if(!S||!S.tutorial)return; const key=step+':'+S.v; if(tutCpuKey===key)return; tutCpuKey=key;
-  await new Promise(r=>setTimeout(r,1600)); if(!S||!S.tutorial||S.v!==parseInt(key.split(':')[1]))return;
+  $('coachBtns').innerHTML=''; await new Promise(r=>setTimeout(r,500)); if(!S||!S.tutorial||S.v!==parseInt(key.split(':')[1]))return;
   const s=clone(); const cpu=s.players[0];
   if(step==='p1'&&s.phase==='play'&&s.players[s.turnIdx].id===cpu.id){ const i=cpu.hand.findIndex(c=>s.condDeck[c]==='赤い'); const card=cpu.hand.splice(i,1)[0]; s.table.push({card,by:cpu.id}); log(s,cpu.name+'：「赤い」を出した'); nextTurn(s); await save(s); }
   else if(step==='p2'&&s.phase==='play'&&s.players[s.turnIdx].id===cpu.id){ cpu.passed=true; log(s,cpu.name+'：パス'); nextTurn(s); await save(s); }
   else if(step==='steal'&&s.phase==='steal'&&s.stealQueue[s.stealIdx]===cpu.id){ const conds=s.table.map(t=>s.condDeck[t.card]); let ans='トマト'; if(s.answer==='トマト')ans='りんご'; if(conds.includes('甘い')&&ans==='トマト')ans=s.answer==='りんご'?'いちご':'りんご';
     s.stealAnswer=ans; s.phase='stealJudging'; s.judgeKey='s'+s.round+'-'+s.stealIdx+'-'+now(); log(s,cpu.name+'の同時解答：「'+ans+'」'); await save(s); }
 }
+
+// ---------- ソリティア ----------
+const HARD_NAMES=['ひらがな3文字で書ける','「ん」で終わる','カタカナで書く言葉','漢字2文字で書ける','英語で言える','歌の題名になっている','数字が含まれる','色の名前が含まれる','1万円以上する','平成以降に生まれた','年に1回くらいしか使わない','歴史上の人物に関係する','神様に関係する','免許や資格が要る','二人以上でする','2つで1セット','季節限定','月（つき）に関係する','太陽に関係する','100年以上前からある','結婚式にある','映画になっている','ゲームに出てくる','お年寄りに人気','使い捨て','棒状','昔話に出てくる','マンガやアニメに出てくる','架空の存在','卵から生まれる','お金に関係する','時間に関係する','数に関係する','言葉に関係する'];
+function mulberry(seed){ let a=seed>>>0; return ()=>{ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^(t>>>15),t|1); t^=t+Math.imul(t^(t>>>7),t|61); return ((t^(t>>>14))>>>0)/4294967296; }; }
+function hashStr(str){ let h=2166136261; for(const c of str){ h^=c.charCodeAt(0); h=Math.imul(h,16777619); } return h>>>0; }
+function todayKey(){ const d=new Date(); return d.getFullYear()+String(d.getMonth()+1).padStart(2,'0')+String(d.getDate()).padStart(2,'0'); }
+const SOLO_CFG={turns:n=>3+Math.floor((n-1)/4), hard:n=>n<=3?0:n<=6?0.15:n<=9?0.3:0.45, fieldHard:n=>n>=7?0.2:0, hand:n=>n+3};
+let G=null, soloLevel=1, soloDaily=true;
+try{ const o=JSON.parse(localStorage.getItem('tsuru.solo')||'{}'); soloLevel=o.level||1; }catch(e){}
+function soloSave(k,v){ let o={}; try{o=JSON.parse(localStorage.getItem('tsuru.solo')||'{}')}catch(e){} if(k)o[k]=v; try{localStorage.setItem('tsuru.solo',JSON.stringify(o))}catch(e){} return o; }
+$('btnModeSolo').onclick=()=>{ if(!getName())return; openSolo(); };
+$('btnSoloBack').onclick=()=>show('vEntry');
+$('soloDaily').onclick=()=>{soloDaily=true;soloUi();}; $('soloFree').onclick=()=>{soloDaily=false;soloUi();};
+$('lvDown').onclick=()=>{soloLevel=Math.max(1,soloLevel-1);soloSave('level',soloLevel);soloUi();}; $('lvUp').onclick=()=>{soloLevel=Math.min(30,soloLevel+1);soloSave('level',soloLevel);soloUi();};
+$('btnSoloStart').onclick=()=>startSolo();
+function openSolo(){ show('vSolo'); soloUi(); }
+function soloUi(){
+  $('soloDaily').classList.toggle('on',soloDaily); $('soloFree').classList.toggle('on',!soloDaily);
+  $('soloModeMsg').textContent=soloDaily?'今日のお題：同じ日・同じレベルなら全員同じ札。スコアでランキング。':'フリー：毎回ランダム。ランキングには載らない。';
+  $('lvNum').textContent=soloLevel; const n=soloLevel;
+  $('lvInfo').textContent='手札'+SOLO_CFG.hand(n)+'枚を'+SOLO_CFG.turns(n)+'ターン以内に。難しい札 '+Math.round(SOLO_CFG.hard(n)*100)+'%';
+  const o=soloSave(); const best=(o.best||{})[n]; const cleared=o.cleared||0;
+  $('soloBest').textContent=(best?'LV'+n+' 最高スコア '+best+'　':'')+'クリア済み最高レベル：'+(cleared||'なし');
+  soloLb();
+}
+async function soloLb(){
+  if(!soloDaily){ $('soloLb').innerHTML='<div class="muted">フリーはランキング対象外</div>'; return; }
+  try{ const sn=await fdb.ref('live/solo-'+todayKey()+'-'+soloLevel+'/scores').get(); const arr=[]; sn.forEach(c=>{arr.push({id:c.key,...c.val()});}); arr.sort((a,b)=>(b.score||0)-(a.score||0));
+    $('soloLb').innerHTML=arr.length?arr.slice(0,10).map((p,i)=>`<div class="r ${p.id===me?'me':''}"><span class="rk">${i+1}</span><span class="nm">${esc(p.name||'？')}</span><span class="muted">${p.win?'クリア':'未達'}</span><span class="pt">${p.score}</span></div>`).join(''):'<div class="muted">まだ誰も挑戦していない。一番乗りだ。</div>';
+  }catch(e){ $('soloLb').innerHTML='<div class="muted">ランキングを読み込めません</div>'; }
+}
+function startSolo(){
+  if(!sample){ $('lvInfo').textContent='AIに接続できないため判定ができません。'; return; }
+  const n=soloLevel; const seed=soloDaily?hashStr(todayKey()+'-'+n):(Math.random()*4294967296)>>>0; const rng=mulberry(seed);
+  const cond=DEFAULT_COND.split('\n').map(x=>x.trim()).filter(Boolean); const gen=DEFAULT_GENRE.split('\n').map(x=>x.trim()).filter(Boolean);
+  const hardSet=new Set(HARD_NAMES); const normal=cond.filter(c=>!hardSet.has(c)), hard=cond.filter(c=>hardSet.has(c));
+  const sh=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(rng()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a;};
+  G={level:n,daily:soloDaily,seed,turn:1,turns:SOLO_CFG.turns(n),score:0,hintUsed:false,hand:[],field:null,sel:new Set(),log:[],over:null,busy:false,
+     normal:sh(normal),hard:sh(hard),genres:sh(gen),rng,hardRatio:SOLO_CFG.hard(n),fieldHard:SOLO_CFG.fieldHard(n),combos:[]};
+  for(let i=0;i<SOLO_CFG.hand(n);i++) soloDraw();
+  soloNewField();
+  G.log.push('LV'+n+' 開始。手札'+G.hand.length+'枚を'+G.turns+'ターンで。');
+  show('vSoloGame'); soloRender(); setTimeout(()=>$('sgIn')&&$('sgIn').focus(),100);
+}
+function soloDraw(){ // 手札にジャンルは1枚まで
+  const hasGenre=G.hand.some(c=>c.genre);
+  if(!hasGenre&&G.rng()<0.12&&G.genres.length){ G.hand.push({t:G.genres.pop(),genre:true}); return; }
+  const useHard=G.rng()<G.hardRatio&&G.hard.length;
+  const pool=useHard?G.hard:G.normal; if(!pool.length){ G.hand.push({t:(G.normal.length?G.normal:G.hard).pop()}); return; }
+  G.hand.push({t:pool.pop(),hard:useHard});
+}
+function soloNewField(){ const useHard=G.rng()<G.fieldHard&&G.hard.length; const pool=useHard?G.hard:G.normal; G.field={t:pool.pop()||'赤い',hard:useHard}; }
+function condText(c){ return c.genre?'ジャンルが「'+c.t+'」（'+c.t+'に分類される言葉）':c.t; }
+function soloRender(){
+  if(!G)return;
+  $('sgLv').textContent=G.level; $('sgTurn').textContent=G.turn+'/'+G.turns; $('sgHand').textContent=G.hand.length; $('sgScore').textContent=G.score;
+  $('sgField').innerHTML='<small>場札</small>'+esc(G.field.t)+(G.field.hard?' <span class="tag">難</span>':'');
+  $('sgHandBox').innerHTML=G.hand.map((c,i)=>`<button class="hcard ${G.sel.has(i)?'sel':''} ${c.genre?'genre':''} ${c.hard?'hard':''}" data-i="${i}" ${G.over||G.busy?'disabled':''}>${c.genre?'ジャンル：':''}${esc(c.t)}</button>`).join('');
+  $('sgHandBox').querySelectorAll('.hcard').forEach(b=>b.onclick=()=>{const i=+b.dataset.i; G.sel.has(i)?G.sel.delete(i):G.sel.add(i); soloRender();});
+  $('sgSel').textContent=G.sel.size?G.sel.size+'枚選択（場札＋'+G.sel.size+'条件）':'';
+  $('sgDeclare').disabled=!G.sel.size||G.busy||!!G.over; $('sgPass').disabled=G.busy||!!G.over; $('sgHint').disabled=G.hintUsed||G.busy||!!G.over;
+  $('sgLog').innerHTML=G.log.slice().reverse().map(x=>`<div>${esc(x)}</div>`).join('');
+  $('sgAct').classList.toggle('hidden',!!G.over);
+}
+$('sgForm').onsubmit=e=>{e.preventDefault();soloDeclare();};
+$('sgPass').onclick=()=>soloPass(); $('sgHint').onclick=()=>soloHint();
+$('btnSoloQuit').onclick=()=>{G=null;openSolo();};
+async function soloDeclare(){
+  const ans=$('sgIn').value.trim(); if(!ans||!G.sel.size||G.busy)return;
+  G.busy=true; $('sgMsg').textContent='AI判定中…'; soloRender();
+  const idx=[...G.sel].sort((a,b)=>a-b); const cards=idx.map(i=>G.hand[i]); const conds=[G.field,...cards];
+  const prompt=`あなたは言葉遊びゲームの審判です。プレイヤーは「場の条件をすべて同時に満たす言葉」を宣言します。答えは名詞・動作・概念・イベントなど何でも可。一般常識に基づき、普通の人の多数決がどう判断するかを想定して判定してください。無理筋のこじつけは不可、常識的な連想は可。
+答えは日本語で一般に通用する既存の言葉・事物・固有名詞・慣用的な複合語である必要があります。条件に合わせて単語をつなげただけの造語は不正解です。
+
+場の条件（すべて満たす必要あり）:
+${conds.map((c,i)=>(i+1)+'. '+condText(c)).join('\n')}
+
+宣言された答え: 「${ans}」
+
+次のJSONのみを返してください。考察や説明は一切書かず、1文字目を { にすること:
+{"ok": true/false, "exists": true/false, "reason": "40字以内の判定理由（満たさない条件があれば番号を挙げる。造語なら『造語』と明記）"}`;
+  let v; try{ v=await sample(prompt,{model:'haiku'}); }catch(e1){ try{ v=await sample(prompt+'\n\n（JSONだけを短く）',{model:'haiku'}); }catch(e){ v={ok:false,reason:'AI判定に失敗（'+(e.code||'error')+'）。手札は戻しますが追加はしません',err:true}; } }
+  const ok=!!v.ok&&v.exists!==false; const k=cards.length;
+  if(ok){ const pts=k*k*10; G.score+=pts; G.combos.push(k);
+    G.hand=G.hand.filter((_,i)=>!G.sel.has(i)); G.log.push('「'+ans+'」成功！ '+k+'枚消去 +'+pts+'点'+(v.reason?'（'+v.reason+'）':''));
+    $('sgVerdict').innerHTML=`<div class="verdict ok"><div class="ans">${esc(ans)}</div><div><b>成功！ ${k}枚消去 +${pts}点</b></div><div class="muted">${esc(v.reason||'')}</div></div>`;
+    sfx('ok'); if(k>=2) comboFx(k);
+  } else {
+    const add=v.err?0:2; for(let i=0;i<add;i++)soloDraw();
+    G.log.push('「'+ans+'」不成立。'+(add?'＋'+add+'枚':'')+'（'+(v.reason||'')+'）');
+    $('sgVerdict').innerHTML=`<div class="verdict ng"><div class="ans">${esc(ans)}</div><div><b>不成立 ${add?'＋'+add+'枚':''}</b></div><div class="muted">${esc(v.reason||'')}</div></div>`;
+    sfx('ng');
+  }
+  G.sel.clear(); $('sgIn').value=''; $('sgMsg').textContent='';
+  soloEndTurn();
+}
+function soloPass(){ if(G.busy||G.over)return; soloDraw(); G.log.push('パス。＋1枚、場札交換'); $('sgVerdict').innerHTML=''; sfx('pass'); G.sel.clear(); soloEndTurn(); }
+function soloEndTurn(){
+  G.busy=false;
+  if(!G.hand.length){ const left=G.turns-G.turn; const bonus=left*100+G.level*20; G.score+=bonus; G.over='win'; G.log.push('クリア！ 残り'+left+'ターン ボーナス +'+bonus); soloFinish(); return; }
+  if(G.turn>=G.turns){ G.over='lose'; G.log.push('ターン切れ。手札'+G.hand.length+'枚残り'); soloFinish(); return; }
+  G.turn++; soloNewField(); soloRender(); setTimeout(()=>$('sgIn')&&$('sgIn').focus(),50);
+}
+function soloFinish(){
+  soloRender(); const win=G.over==='win';
+  const o=soloSave(); o.best=o.best||{}; if(win){ if(!o.best[G.level]||o.best[G.level]<G.score)o.best[G.level]=G.score; if((o.cleared||0)<G.level)o.cleared=G.level; } soloSave('best',o.best); soloSave('cleared',o.cleared||0);
+  const maxCombo=Math.max(0,...G.combos);
+  $('sgVerdict').innerHTML=`<div class="verdict ${win?'ok':'ng'}"><div class="ans">${win?'クリア！':'力尽きた…'}</div><div><b>スコア ${G.score}</b>　最大コンボ ${maxCombo}枚</div>${win&&G.level<30?'<div class="muted">次のレベルが解放された</div>':''}
+    <div class="row" style="margin-top:8px"><button class="pri grow" id="sgAgain">${win?'次のレベルへ':'もう一度'}</button><button class="grow" id="sgHome">ソリティア画面へ</button></div></div>`;
+  $('sgAgain').onclick=()=>{ if(win)soloLevel=Math.min(30,G.level+1); soloSave('level',soloLevel); startSolo(); }; $('sgHome').onclick=()=>{G=null;openSolo();};
+  sfx(win?'win':'round');
+  if(G.daily){ try{ fdb.ref('live/solo-'+todayKey()+'-'+G.level+'/scores/'+me).transaction(cur=>{ if(cur&&cur.score>=G.score)return; return {name:myName,score:G.score,win,ts:now()}; }); }catch(e){} }
+}
+async function soloHint(){
+  if(G.hintUsed||G.busy||G.over)return; G.busy=true; G.hintUsed=true; $('sgMsg').textContent='AIが考え中…'; soloRender();
+  const prompt=`言葉遊びゲームのヒントを出してください。場札の条件と、手札の条件から1〜3枚を選び、それらすべてを同時に満たす実在する言葉を1つ挙げてください。できるだけ多くの札を使えるものを優先。造語は不可。
+場札: ${condText(G.field)}
+手札:
+${G.hand.map((c,i)=>i+': '+condText(c)).join('\n')}
+JSONのみ: {"cards": [手札の番号...], "word": "言葉"}`;
+  let v=null; try{ v=await sample(prompt,{model:'haiku'}); }catch(e){}
+  G.busy=false; soloDraw();
+  if(v&&v.word){ const names=(v.cards||[]).map(i=>G.hand[parseInt(i)]).filter(Boolean).map(c=>'「'+(c.genre?'ジャンル：':'')+c.t+'」').join('＋'); $('sgMsg').textContent='ヒント：'+names+' → '+v.word+'　（手札＋1）'; G.log.push('ヒント使用：'+names+' → '+v.word); }
+  else { $('sgMsg').textContent='ヒントを出せなかった（手札＋1）'; }
+  soloRender();
+}
+function comboFx(k){ const names={2:'二連！',3:'三連！！',4:'四連！！！',5:'五連！！！！'}; const el=document.createElement('div'); el.className='combo'; el.innerHTML='<span>'+(names[k]||k+'連！！！！！')+'</span>'; document.body.appendChild(el); setTimeout(()=>el.remove(),1500);
+  const ctx=actx(); if(!ctx||SFX.muted)return; const t=ctx.currentTime; for(let i=0;i<k;i++) tone(ctx,t+0.5+i*0.09,880+i*220,0.18,'triangle',SFX.vol*0.4); }
 
 // ---------- ガチンコ（レート戦） ----------
 const K_ELO=32, AI_RATE=1000;
@@ -1280,7 +1471,7 @@ function render(){
         else ord=`<span class="tag ord">${k+1}番</span>`; }
       else if(!tsuru) ord=`<span class="tag">不参加</span>`; }
     const nowSteal=stealPhase&&['steal','stealJudging'].includes(S.phase)&&S.stealQueue[S.stealIdx]===p.id;
-    return `<div class="pl ${p.id===me?'me':''} ${turn?'turn':''} ${nowSteal?'stealnow':''}" data-id="${esc(p.id)}"><span class="nm">${esc(p.name)}</span>${S.mode==='rank'&&p.rate0!==undefined?`<span class="tag">R${p.rate0}</span>`:''}${p.cpu?'<span class="tag">AI</span>':''}${p.id===S.hostId?'<span class="tag host">主催</span>':''}${tsuru?'<span class="tag tsuru">鶴</span>':''}${S.phase==='play'&&p.passed?'<span class="tag">パス</span>':''}${ord}<span class="sc">${p.score}</span></div>`}).join('');
+    return `<div class="pl ${p.id===me?'me':''} ${turn?'turn':''} ${nowSteal?'stealnow':''}" data-id="${esc(p.id)}"><span class="nm">${esc(p.name)}</span><span class="sc">${p.score}</span><span class="tags">${S.mode==='rank'&&p.rate0!==undefined?`<span class="tag">R${p.rate0}</span>`:''}${p.cpu?'<span class="tag">AI</span>':''}${p.id===S.hostId&&S.mode!=='rank'?'<span class="tag host">主催</span>':''}${tsuru?'<span class="tag tsuru">鶴</span>':''}${S.phase==='play'&&(turn?'<span class="tag ord now">手番</span>':p.passed?'<span class="tag">パス</span>':'')}${ord}</span></div>`}).join('');
   $('logBox').innerHTML=(S.log||[]).slice().reverse().map(x=>`<div>${esc(x)}</div>`).join('');
   drawBubs(); applyRatings();
   if(S.mode==='rank'&&S.phase!=='over'){ const opp=S.players.find(p=>p.id!==me&&!p.cpu); const off=opp&&oppOffSince&&now()-oppOffSince>45000;
@@ -1294,7 +1485,8 @@ function render(){
   const swapMode=S.phase==='roundEnd'&&!meP.swapped;
   const handClickable=myTurnPlay||(S.phase==='tsuru'&&S.tsuruStage==='extra'&&S.tsuru===me)||swapMode;
   if(!swapMode)swapSel.clear();
-  $('handBox').innerHTML=(meP.hand||[]).map((c,i)=>`<button class="hcard ${(swapMode?swapSel.has(i):selCard===i)?'sel':''}" data-i="${i}" ${handClickable?'':'disabled'}>${esc(S.condDeck[c])}</button>`).join('')||'<div class="muted">手札なし</div>';
+  const tutOnly=(S.tutorial&&S.phase==='play'&&S.table.length===1)?'丸い':(S.tutorial&&S.phase==='tsuru'&&S.tsuruStage==='extra')?'甘い':null;
+  $('handBox').innerHTML=(meP.hand||[]).map((c,i)=>`<button class="hcard ${(swapMode?swapSel.has(i):selCard===i)?'sel':''}" data-i="${i}" ${handClickable&&(!tutOnly||S.condDeck[c]===tutOnly)?'':'disabled'}>${esc(S.condDeck[c])}</button>`).join('')||'<div class="muted">手札なし</div>';
   $('handBox').querySelectorAll('.hcard').forEach(b=>b.onclick=()=>{const i=+b.dataset.i; if(swapMode){swapSel.has(i)?swapSel.delete(i):swapSel.add(i);} else selCard=selCard===i?-1:i; render();});
   stopTimer();
   const canAppeal=!S.appealUsed;
@@ -1302,7 +1494,7 @@ function render(){
     const deadline=S.turnStartAt+T_PLAY*1000;
     band.classList.toggle('mine',myTurnPlay);
     band.innerHTML=`<h2>${myTurnPlay?'🔴 あなたの手番！':esc(cur.name)+' の手番'}</h2><div class="timer" id="tm"></div><div class="muted">場の条件すべて＋出す札を満たす言葉が20秒以内に浮かぶときだけ出せる</div>`;
-    runTimer(deadline,()=>{ if(myTurnPlay)pass(true); else if(isHost&&cur.cpu){ const v0=S.v; setTimeout(async()=>{ if(S&&S.v===v0&&S.phase==='play'){ const s=clone(); cpuKey='timeout:'+v0; await cpuFallback(s); await save(s); } },5000); } });
+    runTimer(deadline,()=>{ if(myTurnPlay)pass(true); else if(isHost&&cur.cpu&&!S.tutorial){ const v0=S.v; setTimeout(async()=>{ if(S&&S.v===v0&&S.phase==='play'){ const s=clone(); cpuKey='timeout:'+v0; await cpuFallback(s); await save(s); } },5000); } });
     if(myTurnPlay){
       act.innerHTML=`<div class="row"><button class="pri grow" id="bPlay" ${selCard<0?'disabled':''}>選んだ札を出す</button><button class="grow" id="bPass">パス</button></div>`+
         (S.round===1&&!meP.mulliganed&&!S.table.length?`<button id="bMul">手札を全部引き直す（1回だけ）</button>`:'');
