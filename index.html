@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v5.4";
+const APP_VER = "v5.5";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -180,6 +180,27 @@ body.tut .wrap{padding-bottom:150px}
 .seg button{flex:1;border:0;border-radius:0;box-shadow:none;min-height:40px}
 .seg button.on{background:var(--ai);color:#fff}
 .mode.set b{color:var(--mute)}
+.mode.ach b{color:var(--shu)}
+/* 称号・実績 */
+.achs{display:flex;flex-direction:column;gap:8px}
+.ach{display:flex;gap:10px;align-items:center;border:2px solid var(--line);border-radius:12px;padding:8px 10px}
+.ach.on{border-color:var(--kin);background:var(--kin-soft)}
+.ach .ic{font-size:1.6em;width:1.6em;text-align:center;flex:none;filter:grayscale(1);opacity:.4}
+.ach.on .ic{filter:none;opacity:1}
+.ach .bd{flex:1;min-width:0}
+.ach .nm{font-weight:900}
+.ach .ds{font-size:.85em;color:var(--mute)}
+.ach .rw{font-size:.8em;color:var(--ai);font-weight:700}
+.ach button{min-height:32px;padding:4px 10px;font-size:.85em}
+.ach button.on{background:var(--kin);border-color:var(--ink)}
+.ttl{display:inline-block;font-size:.72em;padding:0 6px;border-radius:999px;background:var(--kin);color:var(--ink);margin-right:4px;vertical-align:middle;font-weight:900;white-space:nowrap}
+.pl.fr-gold{border-color:var(--kin)!important;box-shadow:0 0 0 2px var(--kin-soft) inset}
+.pl.fr-silver{border-color:#9aa5b1!important}
+.pl.fr-gold .nm{color:#b8860b}
+.toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translateX(-50%);z-index:80;background:var(--ink);color:var(--bg);border:3px solid var(--kin);border-radius:14px;padding:10px 16px;font-weight:900;box-shadow:0 4px 0 var(--kin);animation:toastIn 3.2s ease forwards;max-width:calc(100vw - 32px);text-align:center}
+.toast b{color:var(--kin)}
+@keyframes toastIn{0%{opacity:0;transform:translate(-50%,-20px)}10%{opacity:1;transform:translate(-50%,0)}85%{opacity:1}100%{opacity:0}}
+.stc.lock{opacity:.45;text-decoration:line-through}
 .mode small{color:var(--mute);font-weight:500;line-height:1.4}
 .rate{font-family:var(--disp);font-size:2.67em;color:var(--ai);line-height:1}
 .rate small{font-family:var(--body);font-size:0.8em;color:var(--mute);margin-left:6px}
@@ -242,7 +263,8 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
       <button class="mode rank" id="btnModeRank"><b>ガチンコモード</b><small>1対1の真剣勝負。4ラウンドでレートを奪い合います。相手がいなければAIが相手です。</small></button>
       <button class="mode solo" id="btnModeSolo"><b>ソリティア</b><small>ひとりでじっくり。札を束ねて言葉を作り、手札を全部消しましょう。今日のお題でスコア勝負もできます。</small></button>
       <button class="mode tut" id="btnTut"><b>はじめての方はこちら</b><small>練習試合でルールを覚えましょう。約1〜3分です。</small></button>
-      <button class="mode set" id="btnModeSet" style="grid-column:1/-1"><b>設定</b><small>文字の種類や大きさ、音、スタンプを変えられます。</small></button>
+      <button class="mode ach" id="btnModeAch"><b>称号・実績</b><small>遊んで集めた称号とごほうび。名前に付ける称号もここで。</small></button>
+      <button class="mode set" id="btnModeSet"><b>設定</b><small>文字の種類や大きさ、音、スタンプを変えられます。</small></button>
     </div>
     <div id="entryMsg" class="muted">アカウント登録はいりません。名前を入れたらすぐ遊べます！</div>
     <details id="keyBox"><summary>AI設定（主催者のみ必要）</summary>
@@ -305,6 +327,17 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
       <div id="sgMsg" class="muted"></div>
     </div>
     <div class="card"><div class="lbl">記録</div><div class="log" id="sgLog"></div><button id="btnSoloQuit">やめる</button></div>
+  </div>
+
+  <!-- 称号・実績 -->
+  <div id="vAch" class="card hidden">
+    <div class="lbl">称号・実績</div>
+    <div class="muted" id="achSummary"></div>
+    <div class="row"><span class="lbl grow">名前に付ける称号</span><button id="achNoTitle">称号なし</button></div>
+    <div class="achs" id="achList"></div>
+    <div class="lbl" style="margin-top:6px">今月のソリティア</div>
+    <div class="muted" id="achMonth"></div>
+    <button class="pri" id="btnAchBack">閉じる</button>
   </div>
 
   <!-- VS入口 -->
@@ -725,7 +758,7 @@ function sfx(name){
     case 'cd': tone(ctx,t,700,0.03,'sine',v*0.18); break;
   }
 }
-let lastSig='', lastTable=0, lastTurnMine=false, hurryLast=-1, lastPassed=0;
+let lastSig='', lastTable=0, lastTurnMine=false, hurryLast=-1, lastPassed=0, myAppeal=false;
 function cue(){
   if(!S)return;
   const n=S.table.length; const meTurn=(S.phase==='play'&&S.players[S.turnIdx].id===me)||(S.phase==='tsuru'&&S.tsuru===me)||(S.phase==='steal'&&S.stealQueue[S.stealIdx]===me);
@@ -734,6 +767,11 @@ function cue(){
   if(S.phase==='play'&&n>lastTable) sfx('card');
   else if(S.phase==='play'&&passedN>lastPassed&&sig===lastSig) sfx('pass');
   lastPassed=S.phase==='play'?passedN:0;
+  if(sig!==lastSig&&!S.tutorial){
+    if(S.phase==='verdict'&&S.verdict&&!S.verdict.err&&S.tsuru===me){ if(S.verdict.ok){ ST.tsuruWins++; ST.maxCombo=Math.max(ST.maxCombo,n); if(myAppeal)ST.appealsWon++; } myAppeal=false; stSave(); setTimeout(checkAch,600); }
+    if(S.phase==='stealVerdict'){ const r=S.stealResults[S.stealResults.length-1]; if(r&&r.by===me&&r.ok){ ST.steals++; stSave(); setTimeout(checkAch,600); } }
+    if(S.phase==='over'&&S.mode==='rank'&&S.result){ if(S.winner===me){ST.rankStreak++; ST.rankMaxStreak=Math.max(ST.rankMaxStreak,ST.rankStreak);} else if(!S.draw) ST.rankStreak=0; const r=S.result[me]; if(r)ST.maxRating=Math.max(ST.maxRating,r.after); stSave(); setTimeout(checkAch,800); }
+  }
   if(sig!==lastSig){
     if(S.phase==='tsuru'&&S.tsuruStage==='extra') sfx(S.tsuru===me?'tsuru':'card');
     else if(S.phase==='judging'||S.phase==='stealJudging') sfx('judging');
@@ -813,7 +851,7 @@ $('btnCreate').onclick=async()=>{
   if(!AI_PROXY_URL&&!apiKey){ $('vsMsg').textContent='主催するにはAI設定でAPIキーを保存してください（最初の画面の下）。'; return; }
   try{ const old=await fdb.ref('rooms').orderByChild('createdAt').endAt(now()-12*3600*1000).limitToFirst(20).get(); old.forEach(c=>{c.ref.remove();}); }catch(e){}
   const code=String(Math.floor(1000+Math.random()*9000));
-  const s={v:1,code,hostId:me,phase:'lobby',players:[{id:me,name:myName,score:0,hand:[],mulliganed:false,passed:false}],
+  const s={v:1,code,hostId:me,phase:'lobby',players:[{id:me,name:myName,title:ST.title||'',frame:myFrame()||'',score:0,hand:[],mulliganed:false,passed:false}],
     target:20,judgeModel:'haiku',condDeck:[],genreDeck:[],deck:[],discard:[],gdeck:[],gdiscard:[],round:0,log:['部屋を作成しました'],createdAt:now()};
   await fdb.ref('rooms/'+code).set(s);
   joinRoom(code,false);
@@ -827,7 +865,7 @@ $('btnJoin').onclick=async()=>{
   if(!s.players.find(p=>p.id===me)){
     if(s.phase!=='lobby'){$('vsMsg').textContent='この部屋はすでに対局中です。';return;}
     if(s.players.length>=8){$('vsMsg').textContent='満席です（8人まで）。';return;}
-    s.players.push({id:me,name:myName,score:0,hand:[],mulliganed:false,passed:false}); log(s,myName+' が参加');
+    s.players.push({id:me,name:myName,title:ST.title||'',frame:myFrame()||'',score:0,hand:[],mulliganed:false,passed:false}); log(s,myName+' が参加');
     await save(s,code);
   }
   joinRoom(code,false);
@@ -861,7 +899,7 @@ $('btnLeave').onclick=$('btnQuit').onclick=async()=>{
 };
 let quitArmed=false;
 function clone(){return JSON.parse(JSON.stringify(S))}
-function show(v){['vEntry','vLobby','vGame','vRank','vVs','vSet','vSolo','vSoloGame'].forEach(x=>$(x).classList.toggle('hidden',x!==v)); $('btnStamp').classList.toggle('hidden',v!=='vGame');}
+function show(v){['vEntry','vLobby','vGame','vRank','vVs','vSet','vSolo','vSoloGame','vAch'].forEach(x=>$(x).classList.toggle('hidden',x!==v)); $('btnStamp').classList.toggle('hidden',v!=='vGame');}
 $('btnModeVs').onclick=()=>{ if(!getName())return; $('vsMsg').textContent=''; show('vVs'); };
 $('btnVsBack').onclick=()=>show('vEntry');
 $('btnModeRank').onclick=()=>{ if(!getName())return; openRank(); };
@@ -872,11 +910,11 @@ function applySet(){ const r=document.documentElement; r.dataset.font=SET.font; 
 applySet();
 $('btnModeSet').onclick=()=>{ $('setFont').value=SET.font; $('setSize').value=SET.size; $('setTheme').value=SET.theme; $('setCd').value=SET.cd; $('setBub').value=SET.bub; $('setVol').value=Math.round(SFX.vol*100); buildStPool(); $('stMsg').textContent=myStamps().length+'/8'; show('vSet'); };
 $('btnSetBack').onclick=()=>show('vEntry');
-function buildStPool(){ const cur=myStamps(); $('stPool').innerHTML=STAMP_POOL.map(t=>`<button class="stc ${cur.includes(t)?'on':''}" data-t="${esc(t)}">${esc(t)}</button>`).join('');
-  $('stPool').querySelectorAll('.stc').forEach(b=>b.onclick=()=>{ let a=myStamps(); const t=b.dataset.t;
+function buildStPool(){ const cur=myStamps(); $('stPool').innerHTML=allStamps().map(t=>`<button class="stc ${cur.includes(t)?'on':''} ${stampUnlocked(t)?'':'lock'}" data-t="${esc(t)}" title="${stampUnlocked(t)?'':'実績で解放'}">${esc(t)}${stampUnlocked(t)?'':' 🔒'}</button>`).join('');
+  $('stPool').querySelectorAll('.stc').forEach(b=>b.onclick=()=>{ let a=myStamps(); const t=b.dataset.t; if(!stampUnlocked(t)){$('stMsg').textContent='これは実績で解放されるひとこと';return;}
     if(a.includes(t)){ if(a.length<=1){$('stMsg').textContent='最低1個は残して';return;} a=a.filter(x=>x!==t); }
     else { if(a.length>=8){$('stMsg').textContent='8個まで。どれか外してから選んで';return;} a.push(t); }
-    a=STAMP_POOL.filter(x=>a.includes(x)); try{localStorage.setItem('tsuru.stamps',JSON.stringify(a))}catch(e){} $('stMsg').textContent=a.length+'/8'; stRoom=''; buildStPool(); }); }
+    a=allStamps().filter(x=>a.includes(x)); try{localStorage.setItem('tsuru.stamps',JSON.stringify(a))}catch(e){} $('stMsg').textContent=a.length+'/8'; stRoom=''; buildStPool(); }); }
 ['setFont','setSize','setTheme','setCd','setBub'].forEach(id=>{ $(id).onchange=()=>{ SET[id.slice(3).toLowerCase()]=$(id).value; applySet(); sfx('btn'); }; });
 $('setVol').oninput=()=>{ SFX.vol=$('setVol').value/100; $('inVol').value=$('setVol').value; try{localStorage.setItem('tsuru.vol',SFX.vol)}catch(e){} };
 $('setVol').onchange=()=>sfx('tick');
@@ -1026,13 +1064,68 @@ async function mulligan(){
 }
 async function appeal(text){
   const s=clone(); if(!['verdict','stealVerdict'].includes(s.phase)||s.appealUsed)return;
-  s.appeal={by:me,text:(text||'').trim()||'条件を満たしていないと思う'}; s.appealUsed=true;
+  s.appeal={by:me,text:(text||'').trim()||'条件を満たしていないと思う'}; s.appealUsed=true; myAppeal=(s.phase==='verdict'&&!s.verdict.ok);
   // 得点を一旦巻き戻してから再判定
   if(s.phase==='verdict'){ const t=P(s,s.tsuru); const n=s.table.length; if(s.verdict.ok){t.score-=n; if(s.verdict.genreOk){t.score-=1;s.genreOnTable=true;} s.table.forEach(x=>delete x.taken);} else t.score+=n;
     s.tsuruGained=0; s.stealQueue=[]; s.phase='judging'; s.judgeKey='a'+s.round+'-'+now(); }
   else { const r=s.stealResults.pop(); const p=P(s,r.by); const t=P(s,s.tsuru); if(r.ok){p.score-=1;t.score+=1;s.tsuruGained++; if(r.gotGenre){p.score-=1;s.genreOnTable=true;s.stealGenreTaken=false;}}
     s.stealIdx--; s.stealAnswer=r.answer; s.phase='stealJudging'; s.judgeKey='b'+s.round+'-'+s.stealIdx+'-'+now(); }
   log(s,myName+'：異議あり「'+s.appeal.text+'」→ 再判定'); await save(s);
+}
+
+// ---------- 称号・実績 ----------
+const ST={tsuruWins:0,maxCombo:0,steals:0,appealsWon:0,rankStreak:0,rankMaxStreak:0,maxRating:1000,soloMaxLv:0,dailyStreak:0,tutorialDone:0,stampsSent:0,unlocked:{},title:''};
+try{ Object.assign(ST,JSON.parse(localStorage.getItem('tsuru.stats')||'{}')); }catch(e){}
+function stSave(){ try{localStorage.setItem('tsuru.stats',JSON.stringify(ST))}catch(e){} }
+function monthClears(ym){ const o=soloSave(); const d=o.daily||{}; let c=0; Object.entries(d).forEach(([k,v])=>{ if(k.startsWith(ym)&&v.win)c++; }); return c; }
+function thisYM(){ return todayKey().slice(0,6); }
+function daysInThisMonth(){ const t=new Date(); return new Date(t.getFullYear(),t.getMonth()+1,0).getDate(); }
+function calcDailyStreak(){ const o=soloSave(); const d=o.daily||{}; let n=0; const t=new Date(); for(let i=0;i<400;i++){ const k=keyOf(new Date(t.getFullYear(),t.getMonth(),t.getDate()-i)); if(d[k]&&d[k].win)n++; else if(i===0)continue; else break; } return n; }
+const ACH=[
+ {id:'tut',ic:'🐣',name:'見習い',desc:'チュートリアルを最後まで',rw:{title:'見習い'},test:()=>ST.tutorialDone>0},
+ {id:'first',ic:'🐦',name:'初鳴き',desc:'鶴の一声を初めて成功',rw:{title:'初鳴き'},test:()=>ST.tsuruWins>=1},
+ {id:'win10',ic:'🎋',name:'十声',desc:'鶴の一声を10回成功',rw:{title:'十声'},test:()=>ST.tsuruWins>=10},
+ {id:'combo3',ic:'✨',name:'三声',desc:'条件3枚以上で一声を成功',rw:{title:'三声'},test:()=>ST.maxCombo>=3},
+ {id:'combo5',ic:'🌟',name:'五声の鶴',desc:'条件5枚以上で一声を成功',rw:{title:'五声の鶴',stamp:'🐦'},test:()=>ST.maxCombo>=5},
+ {id:'steal10',ic:'🦊',name:'横取り名人',desc:'奪い合いで10回成功',rw:{title:'横取り名人',stamp:'いただき'},test:()=>ST.steals>=10},
+ {id:'appeal',ic:'⚖️',name:'法廷の鶴',desc:'異議でAIの判定をくつがえす',rw:{title:'法廷の鶴'},test:()=>ST.appealsWon>=1},
+ {id:'streak3',ic:'🔥',name:'三連勝',desc:'ガチンコで3連勝',rw:{title:'三連勝'},test:()=>ST.rankMaxStreak>=3},
+ {id:'r1100',ic:'📈',name:'昇り鶴',desc:'レート1100に到達',rw:{title:'昇り鶴'},test:()=>ST.maxRating>=1100},
+ {id:'r1200',ic:'🕊️',name:'飛翔',desc:'レート1200に到達',rw:{title:'飛翔',stamp:'🏆'},test:()=>ST.maxRating>=1200},
+ {id:'r1300',ic:'👑',name:'天翔ける鶴',desc:'レート1300に到達',rw:{title:'天翔ける鶴',frame:'silver'},test:()=>ST.maxRating>=1300},
+ {id:'solo10',ic:'🧩',name:'束ね人',desc:'ソリティア（フリー）LV10クリア',rw:{title:'束ね人'},test:()=>ST.soloMaxLv>=10},
+ {id:'solo20',ic:'🎴',name:'束ねの達人',desc:'ソリティア（フリー）LV20クリア',rw:{title:'束ねの達人',stamp:'(ﾟ∀ﾟ)ｱﾋｬ'},test:()=>ST.soloMaxLv>=20},
+ {id:'daily7',ic:'📅',name:'七日鶴',desc:'今日のお題を7日連続クリア',rw:{title:'七日鶴'},test:()=>ST.dailyStreak>=7},
+ {id:'m5',ic:'🌙',name:'月の常連',desc:'今月のお題を5日クリア',rw:{title:'月の常連'},test:()=>monthClears(thisYM())>=5},
+ {id:'m15',ic:'🌕',name:'月の達人',desc:'今月のお題を15日クリア',rw:{title:'月の達人',stamp:'👑'},test:()=>monthClears(thisYM())>=15},
+ {id:'mall',ic:'🏅',name:'皆勤賞',desc:'今月のお題を毎日クリア',rw:{title:'皆勤賞',frame:'gold'},test:()=>monthClears(thisYM())>=daysInThisMonth()},
+ {id:'talk',ic:'💬',name:'おしゃべり',desc:'ひとことを50回送る',rw:{title:'おしゃべり',stamp:'ｷﾀ━(ﾟ∀ﾟ)━!'},test:()=>ST.stampsSent>=50},
+];
+function myFrame(){ let f=''; ACH.forEach(a=>{ if(ST.unlocked[a.id]&&a.rw.frame) f=a.rw.frame==='gold'?'gold':(f||'silver'); }); return f; }
+function rewardStamps(){ const r=[]; ACH.forEach(a=>{ if(ST.unlocked[a.id]&&a.rw.stamp) r.push(a.rw.stamp); }); return r; }
+function checkAch(){
+  ST.dailyStreak=Math.max(ST.dailyStreak||0,calcDailyStreak());
+  let newly=[]; ACH.forEach(a=>{ if(!ST.unlocked[a.id]&&a.test()){ ST.unlocked[a.id]=todayKey(); newly.push(a); } });
+  stSave();
+  newly.forEach((a,i)=>setTimeout(()=>{ toast(`${a.ic} 称号獲得！ <b>${esc(a.name)}</b>${a.rw.stamp?'　ひとこと「'+esc(a.rw.stamp)+'」解放':''}${a.rw.frame?'　名前に'+(a.rw.frame==='gold'?'金':'銀')+'の枠':''}`); sfx('win'); },i*3300));
+  if(newly.length) pushProfile();
+}
+function toast(html){ const el=document.createElement('div'); el.className='toast'; el.innerHTML=html; document.body.appendChild(el); setTimeout(()=>el.remove(),3300); }
+function bump(k,v){ if(v===undefined){ST[k]=(ST[k]||0)+1;} else ST[k]=v; stSave(); checkAch(); }
+async function pushProfile(){ try{ if(fdb&&me) await fdb.ref('players/'+me).update({title:ST.title||'',frame:myFrame()||''}); }catch(e){} }
+function nameHtml(name,title,frame){ return (title?`<span class="ttl">${esc(title)}</span>`:'')+esc(name); }
+$('btnModeAch').onclick=()=>openAch(); $('btnAchBack').onclick=()=>show('vEntry');
+$('achNoTitle').onclick=()=>{ST.title='';stSave();pushProfile();openAch();};
+function openAch(){
+  checkAch(); const n=Object.keys(ST.unlocked).length;
+  $('achSummary').textContent='獲得 '+n+'/'+ACH.length+'　一声成功 '+ST.tsuruWins+'回・最大'+ST.maxCombo+'枚・奪取 '+ST.steals+'回・ガチンコ最大連勝 '+ST.rankMaxStreak+'・最高レート '+ST.maxRating;
+  $('achNoTitle').classList.toggle('on',!ST.title);
+  $('achList').innerHTML=ACH.map(a=>{ const on=!!ST.unlocked[a.id]; const rw=[a.rw.title?'称号':'',a.rw.stamp?'ひとこと「'+a.rw.stamp+'」':'',a.rw.frame?(a.rw.frame==='gold'?'金の名前枠':'銀の名前枠'):''].filter(Boolean).join('・');
+    return `<div class="ach ${on?'on':''}"><div class="ic">${a.ic}</div><div class="bd"><div class="nm">${esc(a.name)}</div><div class="ds">${esc(a.desc)}</div><div class="rw">ごほうび：${esc(rw)}${on?'　（'+ST.unlocked[a.id].slice(4,6)+'/'+ST.unlocked[a.id].slice(6,8)+' 獲得）':''}</div></div>${on&&a.rw.title?`<button class="${ST.title===a.rw.title?'on':''}" data-t="${esc(a.rw.title)}">${ST.title===a.rw.title?'装着中':'付ける'}</button>`:''}</div>`; }).join('');
+  $('achList').querySelectorAll('button').forEach(b=>b.onclick=()=>{ST.title=b.dataset.t;stSave();pushProfile();openAch();sfx('ok');});
+  const ym=thisYM(); const c=monthClears(ym); const dim=daysInThisMonth();
+  $('achMonth').innerHTML=`クリア ${c}日 / ${dim}日　<span class="muted">5日で「月の常連」、15日で「月の達人」＋ひとこと👑、全日で「皆勤賞」＋金の名前枠</span>`;
+  show('vAch');
 }
 
 // ---------- チュートリアル（本番と同じ画面で、鶴丸が台本どおり動く） ----------
@@ -1072,7 +1165,7 @@ function tutCoach(){
   else if(S.phase==='steal'){ coach('<b>同時解答（奪い合い）</b>。鶴が成功したときだけ発生。このラウンドに<b>1枚でも札を出した人</b>が、出した逆順に、鶴と<b>違う答え</b>を言う。当たれば鶴の札を1枚もらえる。<br>鶴丸は「赤い」を出してるので参加できる。',[['鶴丸の答えを見る',()=>tutScript('steal')]]); spot('gamePlayers'); }
   else if(S.phase==='stealJudging'){ coach('鶴丸の答えをAIが判定中…'); spot('band'); }
   else if(S.phase==='stealVerdict'){ const r=S.stealResults[S.stealResults.length-1]; coach(r&&r.ok?'鶴丸が成功。あなたの札を<b>1枚奪われた</b>（得点を見て）。このドキドキが奪い合い。':'鶴丸は不成立。奪われずに済んだ。'); spot('gamePlayers'); }
-  else if(S.phase==='roundEnd'){ coach('ラウンド終了。いらない手札を選んで<b>交換</b>できる。先に<b>20点</b>取った人の勝ち。<br>練習はここまで。本番でお会いしましょう🐦',[['本番へ',()=>leave()]]); spot('handBox'); }
+  else if(S.phase==='roundEnd'){ coach('ラウンド終了。いらない手札を選んで<b>交換</b>できる。先に<b>20点</b>取った人の勝ち。<br>練習はここまで。本番でお会いしましょう🐦',[['本番へ',()=>{leave();bump('tutorialDone');}]]); spot('handBox'); }
   else { coach('…'); }
 }
 async function tutScript(step){
@@ -1220,6 +1313,7 @@ function soloFinish(){
   const o=soloSave(); o.best=o.best||{}; o.daily=o.daily||{};
   if(G.daily){ const r=o.daily[G.date]||{score:0,win:false}; r.win=r.win||win; r.score=Math.max(r.score,G.score); o.daily[G.date]=r; soloSave('daily',o.daily); }
   else { if(win){ if(!o.best[G.level]||o.best[G.level]<G.score)o.best[G.level]=G.score; if((o.cleared||0)<G.level)o.cleared=G.level; } soloSave('best',o.best); soloSave('cleared',o.cleared||0); }
+  if(win&&!G.daily) ST.soloMaxLv=Math.max(ST.soloMaxLv,G.level); setTimeout(checkAch,700);
   const maxCombo=Math.max(0,...G.combos);
   $('sgVerdict').innerHTML=`<div class="verdict ${win?'ok':'ng'}"><div class="ans">${win?'クリア！':'力尽きた…'}</div><div><b>スコア ${G.score}</b>　最大コンボ ${maxCombo}枚</div>${win&&!G.daily&&G.level<30?'<div class="muted">次のレベルが解放されました</div>':''}
     <div class="row" style="margin-top:8px"><button class="pri grow" id="sgAgain">${G.daily?'もう一度':win?'次のレベルへ':'もう一度'}</button><button class="grow" id="sgHome">ソリティア画面へ</button></div></div>`;
@@ -1251,12 +1345,12 @@ async function myRating(){ try{ const sn=await fdb.ref('players/'+me).get(); con
 async function openRank(){
   show('vRank'); $('rankIdle').classList.remove('hidden'); $('rankSearch').classList.add('hidden');
   const r=await myRating(); $('myRate').firstChild.textContent=r.rating; $('myRec').textContent=r.wins+'勝'+r.losses+'敗'+(r.draws?r.draws+'分':'');
-  try{ await fdb.ref('players/'+me).update({name:myName,rating:r.rating,wins:r.wins,losses:r.losses,draws:r.draws||0,seen:now()}); }catch(e){}
+  try{ await fdb.ref('players/'+me).update({name:myName,title:ST.title||'',frame:myFrame()||'',rating:r.rating,wins:r.wins,losses:r.losses,draws:r.draws||0,seen:now()}); }catch(e){}
   loadLeaderboard();
 }
 async function loadLeaderboard(){
   try{ const sn=await fdb.ref('players').orderByChild('rating').limitToLast(10).get(); const arr=[]; sn.forEach(c=>{arr.push({id:c.key,...c.val()});}); arr.sort((a,b)=>(b.rating||0)-(a.rating||0));
-    $('lbBox').innerHTML=arr.length?arr.map((p,i)=>`<div class="r ${p.id===me?'me':''}"><span class="rk">${i+1}</span><span class="nm">${esc(p.name||'？')}</span><span class="muted">${p.wins||0}勝${p.losses||0}敗</span><span class="pt">${p.rating??1000}</span></div>`).join(''):'<div class="muted">まだ誰もいません。一番乗りのチャンス！</div>';
+    $('lbBox').innerHTML=arr.length?arr.map((p,i)=>`<div class="r ${p.id===me?'me':''}"><span class="rk">${i+1}</span><span class="nm">${nameHtml(p.name||'？',p.title,p.frame)}</span><span class="muted">${p.wins||0}勝${p.losses||0}敗</span><span class="pt">${p.rating??1000}</span></div>`).join(''):'<div class="muted">まだ誰もいません。一番乗りのチャンス！</div>';
   }catch(e){ $('lbBox').innerHTML='<div class="muted">ランキングを読み込めませんでした</div>'; }
 }
 $('btnRankBack').onclick=()=>{cancelFind();show('vEntry');};
@@ -1267,7 +1361,7 @@ async function findMatch(){
   if(!sample){ $('searchMsg').textContent='AIに接続できないため対戦できません。'; return; }
   const r=await myRating(); const qref=fdb.ref('queue/'+me);
   $('rankIdle').classList.add('hidden'); $('rankSearch').classList.remove('hidden'); $('searchMsg').textContent='';
-  await qref.set({name:myName,rating:r.rating,ts:now(),match:null}); qref.onDisconnect().remove();
+  await qref.set({name:myName,rating:r.rating,title:ST.title||'',frame:myFrame()||'',ts:now(),match:null}); qref.onDisconnect().remove();
   let left=20; $('searchDots').textContent='相手を探し中… '+left; qTick=setInterval(()=>{left--; $('searchDots').textContent='相手を探し中… '+Math.max(0,left);},1000);
   qTimer=setTimeout(()=>startAiRank(),20000);
   let claiming=false;
@@ -1282,7 +1376,7 @@ async function findMatch(){
     if(me>oid)return; // 小さいIDの側が部屋を作る
     claiming=true;
     const code='R'+String(Math.floor(1000+Math.random()*9000));
-    const s=makeRankRoom(code,[{id:me,name:myName,rating:r.rating},{id:oid,name:ov.name||'？',rating:ov.rating||1000}]);
+    const s=makeRankRoom(code,[{id:me,name:myName,rating:r.rating,title:ST.title,frame:myFrame()},{id:oid,name:ov.name||'？',rating:ov.rating||1000,title:ov.title||'',frame:ov.frame||''}]);
     await fdb.ref('rooms/'+code).set(s);
     const res=await fdb.ref('queue/'+oid).transaction(cur=>{ if(!cur||cur.match)return; cur.match=code; return cur; });
     if(!res.committed){ claiming=false; try{fdb.ref('rooms/'+code).remove();}catch(e){} return; }
@@ -1298,12 +1392,12 @@ function cancelFind(keepUi){
 async function startAiRank(){
   const r=await myRating(); cancelFind(true);
   const code='R'+String(Math.floor(1000+Math.random()*9000));
-  const s=makeRankRoom(code,[{id:me,name:myName,rating:r.rating},{id:'cpu-rank',name:'鶴丸（AI）',rating:AI_RATE,cpu:true}]);
+  const s=makeRankRoom(code,[{id:me,name:myName,rating:r.rating,title:ST.title,frame:myFrame()},{id:'cpu-rank',name:'鶴丸（AI）',rating:AI_RATE,cpu:true}]);
   await fdb.ref('rooms/'+code).set(s); joinRoom(code,false);
 }
 function makeRankRoom(code,ps){
   const s={v:1,code,hostId:ps[0].id,mode:'rank',maxRounds:4,phase:'lobby',target:9999,judgeModel:'haiku',
-    players:ps.map(p=>({id:p.id,name:p.name,score:0,hand:[],mulliganed:true,passed:false,cpu:!!p.cpu,rate0:p.rating})),
+    players:ps.map(p=>({id:p.id,name:p.name,title:p.title||'',frame:p.frame||'',score:0,hand:[],mulliganed:true,passed:false,cpu:!!p.cpu,rate0:p.rating})),
     condDeck:DEFAULT_COND.split('\n').map(x=>x.trim()).filter(Boolean),genreDeck:DEFAULT_GENRE.split('\n').map(x=>x.trim()).filter(Boolean),
     deck:[],discard:[],gdeck:[],gdiscard:[],round:0,log:['ガチンコ開始：'+ps.map(p=>p.name+'('+p.rating+')').join(' vs ')],createdAt:now()};
   initGame(s); return s;
@@ -1348,16 +1442,19 @@ async function claimForfeit(){ const s=clone(); const opp=s.players.find(p=>p.id
 // ---------- ひとこと（スタンプ） ----------
 const STAMP_POOL=['よろしく','対よろ','GG','いいね','草','うおｗ','ファッ！？','ドンマイ','ナイス','ごめん','上手い！','天才！','ありがとう','素敵やん','乙','神','まじか','早く！','やりますねぇ！','それは無理','知らんがな','先言われた～','異議あり！','(´・ω・`)','(・∀・)ｲｲﾈ!!','💩'];
 const STAMP_DEF=['対よろ','GG','草','ドンマイ','ナイス','上手い！','まじか','知らんがな'];
-function myStamps(){ try{ const a=JSON.parse(localStorage.getItem('tsuru.stamps')||'null'); if(Array.isArray(a)){ const b=STAMP_POOL.filter(x=>a.includes(x)).slice(0,8); if(b.length)return b; } }catch(e){} return STAMP_DEF.slice(); }
+const REWARD_STAMPS=['🐦','いただき','🏆','(ﾟ∀ﾟ)ｱﾋｬ','👑','ｷﾀ━(ﾟ∀ﾟ)━!'];
+function allStamps(){ return [...STAMP_POOL,...REWARD_STAMPS]; }
+function stampUnlocked(t){ return STAMP_POOL.includes(t)||rewardStamps().includes(t); }
+function myStamps(){ try{ const a=JSON.parse(localStorage.getItem('tsuru.stamps')||'null'); if(Array.isArray(a)){ const b=allStamps().filter(x=>a.includes(x)&&stampUnlocked(x)).slice(0,8); if(b.length)return b; } }catch(e){} return STAMP_DEF.slice(); }
 const CPU_STAMPS={win:['やりますねぇ！','神','ナイス','天才！'],lose:['ドンマイ','まじか','それは無理'],steal:['先言われた～','草','いいね'],hello:['対よろ','よろしく'],bye:['GG','乙']};
-const STAMP_OK=new Set(STAMP_POOL);
+const STAMP_OK=new Set([...STAMP_POOL,'🐦','いただき','🏆','(ﾟ∀ﾟ)ｱﾋｬ','👑','ｷﾀ━(ﾟ∀ﾟ)━!']);
 let stampCD=0, stUnsub=null, stSeen={}, stRoom='';
 function stampsSetup(){ if(!S||stRoom===S.code||S.tutorial)return; stRoom=S.code; const box=$('stamps'); box.innerHTML=''; myStamps().forEach(t=>{const b=document.createElement('button'); b.textContent=t; b.onclick=e=>{e.stopPropagation();sendStamp(t);}; box.appendChild(b);});
   if(stUnsub)stUnsub(); const ref=fdb.ref('live/'+S.code+'/stamps'); const cb=sn=>{ const v=sn.val()||{}; Object.entries(v).forEach(([id,x])=>{ if(!x||id===me)return; if(now()-(x.ts||0)>6000)return; if(stSeen[id]>=x.ts)return; stSeen[id]=x.ts; if(!STAMP_OK.has(x.txt))return; bubble(id,x.txt); }); };
   ref.on('value',cb); stUnsub=()=>ref.off('value',cb); }
 $('btnStamp').onclick=e=>{ e.stopPropagation(); if(now()<stampCD)return; $('stamps').classList.toggle('hidden'); };
 document.addEventListener('click',e=>{ if(!e.target.closest('.stampbox')) $('stamps').classList.add('hidden'); });
-function sendStamp(t){ if(!S||now()<stampCD)return; stampCD=now()+5000; $('stamps').classList.add('hidden'); bubble(me,t);
+function sendStamp(t){ if(!S||now()<stampCD)return; stampCD=now()+5000; if(!S.tutorial)bump('stampsSent'); $('stamps').classList.add('hidden'); bubble(me,t);
   if(!S.tutorial){ try{ fdb.ref('live/'+S.code+'/stamps/'+me).set({txt:t,ts:now()}); }catch(e){} }
   const bt=$('btnStamp'); bt.classList.add('cd'); let left=5; bt.textContent='⏳'+left; const iv=setInterval(()=>{left--; if(left<=0){clearInterval(iv);bt.textContent='💬';bt.classList.remove('cd');} else bt.textContent='⏳'+left;},1000); }
 const bubs={};
@@ -1506,7 +1603,7 @@ function render(){
   if(S.phase==='lobby'){
     lastSig='';lastTable=0;lastTurnMine=false;stopFlash();
     show('vLobby'); $('lobbyCode').textContent=S.code;
-    $('lobbyPlayers').innerHTML=S.players.map(p=>`<div class="pl ${p.id===me?'me':''}"><span class="nm">${esc(p.name)}</span>${p.cpu?'<span class="tag">AI</span>':''}${p.id===S.hostId?'<span class="tag host">主催</span>':''}</div>`).join('');
+    $('lobbyPlayers').innerHTML=S.players.map(p=>`<div class="pl ${p.id===me?'me':''} ${p.frame?'fr-'+p.frame:''}"><span class="nm">${nameHtml(p.name,p.title,p.frame)}</span>${p.cpu?'<span class="tag">AI</span>':''}${p.id===S.hostId?'<span class="tag host">主催</span>':''}</div>`).join('');
     $('hostCtl').classList.toggle('hidden',!isHost); $('lobbyWait').classList.toggle('hidden',isHost);
     if(!isHost)$('lobbyWait').textContent='主催者の開始を待っています…';
     return;
@@ -1529,7 +1626,7 @@ function render(){
         else ord=`<span class="tag ord">${k+1}番</span>`; }
       else if(!tsuru) ord=`<span class="tag">不参加</span>`; }
     const nowSteal=stealPhase&&['steal','stealJudging'].includes(S.phase)&&S.stealQueue[S.stealIdx]===p.id;
-    return `<div class="pl ${p.id===me?'me':''} ${turn?'turn':''} ${nowSteal?'stealnow':''}" data-id="${esc(p.id)}"><span class="nm">${esc(p.name)}</span><span class="sc">${p.score}</span><span class="tags">${S.mode==='rank'&&p.rate0!==undefined?`<span class="tag">R${p.rate0}</span>`:''}${p.cpu?'<span class="tag">AI</span>':''}${p.id===S.hostId&&S.mode!=='rank'?'<span class="tag host">主催</span>':''}${tsuru?'<span class="tag tsuru">鶴</span>':''}${S.phase==='play'?(turn?'<span class="tag ord now">手番</span>':p.passed?'<span class="tag">パス</span>':''):''}${ord}</span></div>`}).join('');
+    return `<div class="pl ${p.id===me?'me':''} ${turn?'turn':''} ${nowSteal?'stealnow':''} ${p.frame?'fr-'+p.frame:''}" data-id="${esc(p.id)}"><span class="nm">${nameHtml(p.name,p.title,p.frame)}</span><span class="sc">${p.score}</span><span class="tags">${S.mode==='rank'&&p.rate0!==undefined?`<span class="tag">R${p.rate0}</span>`:''}${p.cpu?'<span class="tag">AI</span>':''}${p.id===S.hostId&&S.mode!=='rank'?'<span class="tag host">主催</span>':''}${tsuru?'<span class="tag tsuru">鶴</span>':''}${S.phase==='play'?(turn?'<span class="tag ord now">手番</span>':p.passed?'<span class="tag">パス</span>':''):''}${ord}</span></div>`}).join('');
   $('logBox').innerHTML=(S.log||[]).slice().reverse().map(x=>`<div>${esc(x)}</div>`).join('');
   drawBubs(); applyRatings();
   if(S.mode==='rank'&&S.phase!=='over'){ const opp=S.players.find(p=>p.id!==me&&!p.cpu); const off=opp&&oppOffSince&&now()-oppOffSince>45000;
