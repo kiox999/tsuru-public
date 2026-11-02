@@ -17,6 +17,8 @@ const FIREBASE_CONFIG = {
   messagingSenderId: "245518258797",
   appId: "1:245518258797:web:c5c8ab6546b3052f5a2564"
 };
+// AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
+const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&display=swap">
@@ -209,7 +211,7 @@ details summary{cursor:pointer;color:var(--ai);font-size:13px;font-weight:700}
         <textarea id="inGenres" style="min-height:70px"></textarea>
       </details>
       <div class="row"><button id="btnAddCpu" class="grow">AI対戦相手を追加</button><button id="btnRemoveCpu" class="grow">AIを1人減らす</button></div>
-      <div class="muted">AIは主催者の端末からHaikuで動かします（APIの料金は主催者負担）。1人でもAI相手にテストできます。</div>
+      <div class="muted">AIは主催者の端末からHaikuで動かします。1人でもAI相手にテストできます。</div>
       <button class="pri" id="btnStart">ゲーム開始</button>
     </div>
     <div id="lobbyWait" class="muted">主催者の開始を待っています…</div>
@@ -586,13 +588,15 @@ $('inDeck').value=DEFAULT_COND; $('inGenres').value=DEFAULT_GENRE;
 // ---------- AI（主催者端末からAnthropic APIを直接呼ぶ） ----------
 const MODELS={haiku:'claude-haiku-5-5',sonnet:'claude-sonnet-5-5'};
 let apiKey=''; try{apiKey=localStorage.getItem('tsuru.apikey')||'';}catch(e){}
-function refreshKeyUI(){ sample=apiKey?aiJson:null; $('keyMsg').textContent=apiKey?'保存済み（'+apiKey.slice(0,10)+'…）。消すには空欄で保存。':'未設定。主催するにはAPIキーが必要です。'; }
+function refreshKeyUI(){ sample=(AI_PROXY_URL||apiKey)?aiJson:null; $('keyBox').hidden=!!AI_PROXY_URL; $('btnKey').hidden=!!AI_PROXY_URL; $('keyMsg').textContent=apiKey?'保存済み（'+apiKey.slice(0,10)+'…）。消すには空欄で保存。':'未設定。主催するにはAPIキーが必要です。'; }
 $('btnSaveKey').onclick=()=>{ apiKey=$('inKey').value.trim(); try{ if(apiKey)localStorage.setItem('tsuru.apikey',apiKey); else localStorage.removeItem('tsuru.apikey'); }catch(e){} $('inKey').value=''; refreshKeyUI(); };
 $('btnKey').onclick=()=>{ if(S){ $('keyMsg').textContent='APIキーの変更は退室してから。'; } $('keyBox').open=true; $('keyBox').scrollIntoView({behavior:'smooth'}); };
 async function aiJson(prompt,opts){
   const model=MODELS[(opts&&opts.model)||(S&&S.judgeModel)||'haiku']||MODELS.haiku;
-  const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-    body:JSON.stringify({model,max_tokens:400,messages:[{role:'user',content:prompt+'\n\n出力はJSONのみ。説明文やコードフェンスは不要。'}]})});
+  const payload=JSON.stringify({model,max_tokens:400,messages:[{role:'user',content:prompt+'\n\n出力はJSONのみ。説明文やコードフェンスは不要。'}]});
+  const r=AI_PROXY_URL
+    ? await fetch(AI_PROXY_URL,{method:'POST',headers:{'content-type':'application/json'},body:payload})
+    : await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:payload});
   if(!r.ok){ const t=await r.text(); throw {code:'http_'+r.status,message:t.slice(0,200)}; }
   const j=await r.json(); const text=(j.content||[]).map(c=>c.text||'').join('');
   const a=text.indexOf('{'), b=text.lastIndexOf('}'); if(a<0||b<0) throw {code:'invalid_json',message:text};
@@ -617,7 +621,7 @@ boot();
 // ---------- 入室 ----------
 $('btnCreate').onclick=async()=>{
   if(!getName())return;
-  if(!apiKey){ $('entryMsg').textContent='主催するにはAI設定でAPIキーを保存してください。'; $('keyBox').open=true; return; }
+  if(!AI_PROXY_URL&&!apiKey){ $('entryMsg').textContent='主催するにはAI設定でAPIキーを保存してください。'; $('keyBox').open=true; return; }
   try{ const old=await fdb.ref('rooms').orderByChild('createdAt').endAt(now()-12*3600*1000).limitToFirst(20).get(); old.forEach(c=>{c.ref.remove();}); }catch(e){}
   const code=String(Math.floor(1000+Math.random()*9000));
   const s={v:1,code,hostId:me,phase:'lobby',players:[{id:me,name:myName,score:0,hand:[],mulliganed:false,passed:false}],
@@ -1044,7 +1048,7 @@ function render(){
   else if(S.phase==='judging'||S.phase==='stealJudging'){
     const ans=S.phase==='judging'?S.answer:S.stealAnswer;
     band.innerHTML=`<h2>AI判定中…</h2><div class="muted">「${esc(ans)}」を審査しています${isHost?'（この端末で判定を実行中）':''}</div>`+(S.phase==='stealJudging'?orderStrip():'');
-    if(isHost&&!sample) act.innerHTML=`<div class="muted">APIキーが未設定のためAI判定ができません。右上の⚙から設定してください。</div>`;
+    if(isHost&&!sample) act.innerHTML=`<div class="muted">AIに接続できません。${AI_PROXY_URL?'中継サーバーの設定を確認してください。':'右上の⚙からAPIキーを設定してください。'}</div>`;
   }
   else if(S.phase==='verdict'){
     const v=S.verdict; const n=S.table.length;
