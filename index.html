@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v6.7";
+const APP_VER = "v7.0";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -280,7 +280,7 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
         <li>AI（または主催者が選べばみんなの多数決、同数ならAI）が判定。当たれば場の札の枚数ぶん得点（ジャンルも合えば＋1）。外れたら枚数ぶんマイナス。</li>
         <li>当たったら<b>奪い合い</b>。このラウンドに1枚でも札を出した人（途中でパスしててもOK）が、出した逆順に、鶴と違う答えを言う。当たれば鶴の札を1枚もらえる。</li>
         <li>判定に納得いかなければ「異議あり」でAIにもう一度考えてもらえる（ラウンド1回）。</li>
-        <li>ラウンドの終わりに、いらない手札を交換できる（1回）。次のラウンドで5枚まで補充。</li>
+        <li>判定のあとやラウンドの終わりは、全員が「OK」を押したら進む。ラウンドの終わりには、いらない手札を交換できる（1回）。次のラウンドで5枚まで補充。</li>
         <li>一声を3回外すと失格（主催者がオフにもできる）。ラウンドの終わりにMVPと戦犯の投票もできる（任意）。</li>
         <li>先に勝利点（初期10点）に届いた人の勝ち。誰も届かなければ最大ラウンド（初期5）終了時に得点が高い人の勝ち。</li>
       </ol>
@@ -816,15 +816,24 @@ let apiKey=''; try{apiKey=localStorage.getItem('tsuru.apikey')||'';}catch(e){}
 function refreshKeyUI(){ sample=(AI_PROXY_URL||apiKey)?aiJson:null; $('keyBox').hidden=!!AI_PROXY_URL; $('btnKey').hidden=!!AI_PROXY_URL; $('keyMsg').textContent=apiKey?'保存済み（'+apiKey.slice(0,10)+'…）。消すには空欄で保存。':'未設定。主催するにはAPIキーが必要です。'; }
 $('btnSaveKey').onclick=()=>{ apiKey=$('inKey').value.trim(); try{ if(apiKey)localStorage.setItem('tsuru.apikey',apiKey); else localStorage.removeItem('tsuru.apikey'); }catch(e){} $('inKey').value=''; refreshKeyUI(); };
 $('btnKey').onclick=()=>{ if(S){ $('keyMsg').textContent='APIキーの変更は退室してから。'; } $('keyBox').open=true; $('keyBox').scrollIntoView({behavior:'smooth'}); };
-async function aiJson(prompt,opts){
+let aiNoTools=false; // 400が出たらツール無しに自動で切り替える
+async function aiJson(prompt,opts,noTools){
   const model=MODELS[(opts&&opts.model)||(S&&S.judgeModel)||'haiku']||MODELS.haiku;
-  const payload=JSON.stringify({model,max_tokens:600,messages:[{role:'user',content:prompt+'\n\n出力はJSONのみ。説明文やコードフェンスは不要。replyツールが使える場合は、求められたJSONオブジェクトをそのままreplyツールの入力として渡すこと。'}],
-    tools:[{name:'reply',description:'求められたJSONオブジェクトをそのまま入力として返す。',input_schema:{type:'object'}}],tool_choice:{type:'tool',name:'reply'}});
+  const useTools=!aiNoTools&&!noTools;
+  const clean=t=>String(t).replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g,'$1').slice(0,7000);
+  const body={model,max_tokens:600,messages:[{role:'user',content:clean(prompt)+'\n\n出力はJSONのみ。説明文やコードフェンスは不要。'+(useTools?'replyツールが使える場合は、求められたJSONオブジェクトをそのままreplyツールの入力として渡すこと。':'')}]};
+  if(useTools){ body.tools=[{name:'reply',description:'求められたJSONオブジェクトをそのまま入力として返す。',input_schema:{type:'object',properties:{}}}]; body.tool_choice={type:'tool',name:'reply'}; }
+  const payload=JSON.stringify(body);
   const r=AI_PROXY_URL
     ? await fetch(AI_PROXY_URL,{method:'POST',headers:{'content-type':'application/json'},body:payload})
     : await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'content-type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:payload});
   const raw=await r.text();
-  if(!r.ok){ throw {code:'http_'+r.status,message:raw.slice(0,120)}; }
+  if(!r.ok){ let msg=raw.slice(0,200); try{ const j=JSON.parse(raw); msg=(j.error&&j.error.message)||j.message||msg; }catch(e){}
+    if(/credit balance/i.test(msg)) msg='Anthropicの残高不足です。console.anthropic.com の Billing でクレジットを追加してください';
+    else if(/rate limit|overloaded/i.test(msg)) msg='混雑中。少し待ってから「もう一度判定」';
+    else if(r.status===403) msg='中継サーバーが拒否（このページのURLからの呼び出しではない）';
+    if(r.status===400&&useTools){ console.warn('400 with tools, retrying without tools:',msg); aiNoTools=true; return aiJson(prompt,opts,true); }
+    throw {code:'http_'+r.status,message:msg}; }
   let j; try{ j=JSON.parse(raw); }catch(e){ throw {code:'bad_response',message:raw.slice(0,80)}; }
   if(j.type==='error') throw {code:'api_error',message:(j.error&&j.error.message||'').slice(0,120)};
   const tu=(j.content||[]).find(c=>c.type==='tool_use'&&c.input&&typeof c.input==='object');
@@ -957,7 +966,7 @@ function alertMsg(m){$('lobbyWait').textContent=m;}
 function draw(s){ if(!s.deck.length){ if(!s.discard.length)return -1; s.deck=shuffle(s.discard); s.discard=[]; } return s.deck.pop(); }
 function refill(s,p){ while(p.hand.length<HAND){const c=draw(s); if(c<0)break; p.hand.push(c);} }
 function startRound(s){
-  s.players.forEach(p=>refill(s,p));
+  s.ready={}; s.players.forEach(p=>refill(s,p));
   s.round++; s.startIdx=(s.startIdx+1)%s.players.length; s.turnIdx=s.startIdx;
   s.table=[]; s.passed={}; s.players.forEach(p=>p.passed=!!p.out);
   if(s.players[s.turnIdx].out){ const n=s.players.length; let k=0; while(s.players[s.turnIdx].out&&k<n){ s.turnIdx=(s.turnIdx+1)%n; k++; } }
@@ -999,7 +1008,7 @@ function roundEnd(s,voidRound){
     s.phase='over'; s.winner=top.id; s.coWinners=ties.map(p=>p.id); log(s,s.rounds+'ラウンド終了。'+(ties.length>1?'同点：'+ties.map(p=>p.name).join('・'):top.name+' の勝利！')); return; }
   const alive=s.players.filter(p=>!p.out);
   if(s.outOn&&alive.length<=1){ const top=s.players.slice().sort((a,b)=>b.score-a.score)[0]; s.phase='over'; s.winner=(alive[0]||top).id; log(s,'残りが1人以下になったので終了。'+pname(s,s.winner)+' の勝利！'); return; }
-  s.votes={}; s.phase='roundEnd'; s.turnStartAt=now();
+  s.votes={}; s.ready={}; s.phase='roundEnd'; s.turnStartAt=now();
 }
 
 // ---------- 手番操作 ----------
@@ -1048,7 +1057,7 @@ function tallyJudge(s){
   if(s.voteFor==='tsuru'){ s.verdict=vv; applyVerdict(s); } else { s.stealVerdict=vv; applyStealVerdict(s); }
 }
 function applyVerdict(s){
-  const t=P(s,s.tsuru); const n=s.table.length;
+  const t=P(s,s.tsuru); const n=s.table.length; s.ready={};
   if(s.verdict.err){ log(s,'AI判定に失敗。得点は変えずに再判定待ち'); s.phase='verdict'; s.turnStartAt=now(); return; }
   if(s.verdict.ok){ t.score+=n; s.tsuruGained=n; if(s.verdict.genreOk){t.score+=1; s.genreOnTable=false;}
     log(s,t.name+'：成功 +'+n+(s.verdict.genreOk?'（ジャンル+1）':'（ジャンル未達）'));
@@ -1061,11 +1070,8 @@ function applyVerdict(s){
     if(s.outOn&&s.mode!=='rank'&&t.fails>=3){ t.out=true; log(s,t.name+'：3回目の誤答で失格'); }
     s.phase='verdict'; s.turnStartAt=now(); }
 }
-async function proceedAfterVerdict(){
-  const s=clone(); if(s.phase!=='verdict')return;
-  if(s.verdict.ok && s.stealQueue.length && s.tsuruGained>0){ s.phase='steal'; s.turnStartAt=now(); }
-  else roundEnd(s,false);
-  await save(s);
+function doProceedVerdict(s){ if(s.verdict.ok && s.stealQueue.length && s.tsuruGained>0){ s.phase='steal'; s.turnStartAt=now(); } else roundEnd(s,false); }
+async function proceedAfterVerdict(){ const s=clone(); if(s.phase!=='verdict')return; doProceedVerdict(s); await save(s);
 }
 async function stealAnswerSubmit(ans,timeout){
   const s=clone(); if(s.phase!=='steal'||s.stealQueue[s.stealIdx]!==me)return;
@@ -1076,7 +1082,7 @@ async function stealAnswerSubmit(ans,timeout){
   await save(s);
 }
 function applyStealVerdict(s){
-  const id=s.stealQueue[s.stealIdx]; const p=P(s,id); const t=P(s,s.tsuru); const v=s.stealVerdict;
+  const id=s.stealQueue[s.stealIdx]; const p=P(s,id); const t=P(s,s.tsuru); const v=s.stealVerdict; s.ready={};
   if(v.err){ log(s,'AI判定に失敗（'+p.name+'の答えは保持）'); s.stealResults.push({by:id,answer:s.stealAnswer,ok:false,err:true,reason:v.reason}); s.phase='stealVerdict'; s.turnStartAt=now(); return; }
   const r={by:id,answer:s.stealAnswer,ok:v.ok,genreOk:v.genreOk,reason:v.reason};
   if(v.ok){ if(s.tsuruGained>0){ t.score-=1; p.score+=1; s.tsuruGained--; }
@@ -1097,6 +1103,18 @@ async function swapCards(idxs){
 }
 let swapSel=new Set();
 async function nextRound(){ const s=clone(); if(s.phase!=='roundEnd'||s.hostId!==me)return; tallyVotes(s); startRound(s); await save(s); }
+// 全員の「次へ」で進行
+function humans(s){ return s.players.filter(p=>!p.cpu); }
+function readyCount(s){ const r=s.ready||{}; return humans(s).filter(p=>r[p.id]).length; }
+async function ready(){
+  const s=clone(); if(!['verdict','stealVerdict','roundEnd'].includes(s.phase))return;
+  if(s.phase==='verdict'&&s.verdict&&s.verdict.err)return;
+  if(s.phase==='stealVerdict'&&s.stealResults.length&&s.stealResults[s.stealResults.length-1].err)return;
+  s.ready=s.ready||{}; if(s.ready[me])return; s.ready[me]=true;
+  if(s.phase==='roundEnd'){ const p=P(s,me); if(p)p.swapped=true; }
+  if(readyCount(s)>=humans(s).length){ s.ready={}; if(s.phase==='verdict')doProceedVerdict(s); else if(s.phase==='stealVerdict')advanceSteal(s); else { tallyVotes(s); startRound(s); } }
+  await save(s);
+}
 function tallyVotes(s){
   if(!s.voteOn||!s.votes)return; const mv={}, bd={}; Object.values(s.votes).forEach(v=>{ if(v.mvp){mv[v.mvp]=(mv[v.mvp]||0)+1;} if(v.bad){bd[v.bad]=(bd[v.bad]||0)+1;} });
   const top=o=>{ const e=Object.entries(o); if(!e.length)return []; const m=Math.max(...e.map(x=>x[1])); return e.filter(x=>x[1]===m).map(x=>x[0]); };
@@ -1669,7 +1687,7 @@ existsがfalseならokも必ずfalseにしてください。`;
   const key=S.judgeKey; let v;
   try{ v=await sample(prompt,{model:S.judgeModel}); }
   catch(e1){ try{ v=await sample(prompt+'\n\n（注意：前回の回答はJSONが不完全でした。JSONだけを短く返してください）',{model:S.judgeModel}); }
-  catch(e){ console.warn('judge',e); v={ok:false,genreOk:false,err:true,reason:'AI判定に失敗（'+(e.code||'error')+(e.message?'：'+String(e.message).slice(0,60):'')+'）'}; } }
+  catch(e){ console.warn('judge',e); v={ok:false,genreOk:false,err:true,reason:'AI判定に失敗（'+(e.code||'error')+(e.message?'：'+String(e.message).slice(0,160):'')+'）'}; } }
   if(!S||S.judgeKey!==key)return;
   const s=clone(); if(!['judging','stealJudging'].includes(s.phase))return;
   const vv={ok:!!v.ok&&v.exists!==false,genreOk:!!v.genreOk,reason:String(v.reason||(v.ok===undefined?'判定結果を読み取れなかった':'')).slice(0,300),err:!!v.err};
@@ -1768,8 +1786,8 @@ function render(){
     const conds=S.table.map(t=>S.condDeck[t.card]).join('・');
     band.classList.toggle('mine',canV&&!my);
     band.innerHTML=`<h2>${esc(pname(S,answerer))} の${S.voteFor==='tsuru'?'一声':'奪い合い'}「${esc(ans)}」</h2><div class="timer" id="tm"></div><div class="muted">条件：${esc(conds)}　ジャンル「${esc(S.genreDeck[S.genre])}」</div><div class="muted">投票 ${Object.keys(S.jv||{}).length}/${vl.length}人${S.voteFor==='steal'?'　（鶴の答え「'+esc(S.answer)+'」と同じ言葉なら×）':''}</div>`;
-    runTimer(S.turnStartAt+20000,()=>{ if(isHost){ setTimeout(async()=>{ if(S&&S.phase==='voting'){ const s=clone(); tallyJudge(s); await save(s); } },500); } });
-    act.innerHTML=canV?`<div class="row"><button class="pri grow ${my==='og'?'':''}" id="vOg" ${my==='og'?'disabled':''}>○ 成立＋ジャンル</button><button class="sec grow" id="vO" ${my==='o'?'disabled':''}>○ 成立</button><button class="grow" id="vX" ${my==='x'?'disabled':''}>× 不成立</button></div><div class="muted">${my?'投票済み（変更可）':'多数決で判定。同数ならAIが決めます'}</div>`:`<div class="muted">${answerer===me?'みんなの判定を待っています…':'投票できるのは答えた人以外の参加者です'}</div>`;
+    runTimer(S.turnStartAt+60000,()=>{ if(isHost){ setTimeout(async()=>{ if(S&&S.phase==='voting'){ const s=clone(); tallyJudge(s); await save(s); } },500); } });
+    act.innerHTML=canV?`<div class="row"><button class="pri grow ${my==='og'?'':''}" id="vOg" ${my==='og'?'disabled':''}>○ 成立＋ジャンル</button><button class="sec grow" id="vO" ${my==='o'?'disabled':''}>○ 成立</button><button class="grow" id="vX" ${my==='x'?'disabled':''}>× 不成立</button></div><div class="muted">${my?'投票済み（変更可）':'多数決で判定（60秒）。同数ならAIが決めます'}</div>`:`<div class="muted">${answerer===me?'みんなの判定を待っています…':'投票できるのは答えた人以外の参加者です'}</div>`;
     if(canV){ $('vOg').onclick=()=>castVote('og'); $('vO').onclick=()=>castVote('o'); $('vX').onclick=()=>castVote('x'); }
   }
   else if(S.phase==='judging'||S.phase==='stealJudging'){
@@ -1790,9 +1808,11 @@ function render(){
     band.innerHTML=`<h2>判定</h2>`+(v.ok&&S.stealQueue.length?`<div>このあと奪い合い（札を出した逆順）</div>${orderStrip()}`:'');
     const apLeft=Math.max(0,Math.ceil((S.turnStartAt+8000-now())/1000)); const apOpen=S.mode!=='rank'&&!S.tutorial&&apLeft>0&&S.players.filter(p=>!p.cpu).length>1;
     if(apOpen) tickText(()=>$('bNext'),S.turnStartAt+8000,l=>'異議受付中… '+l,'verdict');
-    act.innerHTML=(isHost?`<button class="pri" id="bNext" ${apOpen?'disabled':''}>${apOpen?'異議受付中… '+apLeft:(v.ok&&S.stealQueue.length?'同時解答へ':'ラウンド終了へ')}</button>`:`<div class="muted">${apOpen?'異議受付中… '+apLeft+'秒':'主催者が進めます'}</div>`)+
-      (canAppeal?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:`<div class="muted">あなたの異議はこのラウンドで使用済み</div>`);
-    if(isHost)$('bNext').onclick=proceedAfterVerdict;
+    const rd=(S.ready||{})[me], rc=readyCount(S), hn=humans(S).length;
+    act.innerHTML=`<button class="pri" id="bNext" ${apOpen||rd?'disabled':''}>${apOpen?'異議受付中… '+apLeft:rd?'OK済み（'+rc+'/'+hn+'）':(v.ok&&S.stealQueue.length?'OK・奪い合いへ':'OK・ラウンド終了へ')+'（'+rc+'/'+hn+'）'}</button>`+
+      (canAppeal&&!rd?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:rd?`<div class="muted">全員がOKを押すと進みます</div>`:`<div class="muted">あなたの異議はこのラウンドで使用済み</div>`)+
+      (isHost&&rc<hn&&now()-S.turnStartAt>45000?`<button id="bForce">待たずに進める（主催）</button>`:'');
+    $('bNext').onclick=ready; if($('bForce'))$('bForce').onclick=proceedAfterVerdict; else if(isHost&&rc<hn)scheduleRender('verdict',Math.max(500,45000-(now()-S.turnStartAt)+100));
     if(S.mode==='rank'){ band.innerHTML+=`<div class="timer" id="tm" style="font-size:24px"></div>`; runTimer(S.turnStartAt+12000,()=>{ if(isHost)proceedAfterVerdict(); }); }
     if($('fAp'))$('fAp').onsubmit=e=>{e.preventDefault();appeal($('inAp').value);};
   }
@@ -1817,9 +1837,11 @@ function render(){
     band.innerHTML=`<h2>判定</h2>${orderStrip()}`+(S.stealIdx<S.stealQueue.length&&S.tsuruGained>0?`<div class="muted">次は ${esc(pname(S,S.stealQueue[S.stealIdx]))}</div>`:'<div class="muted">奪い合いはここまで</div>');
     const apLeft2=Math.max(0,Math.ceil((S.turnStartAt+8000-now())/1000)); const apOpen2=S.mode!=='rank'&&!S.tutorial&&apLeft2>0&&S.players.filter(p=>!p.cpu).length>1;
     if(apOpen2) tickText(()=>$('bNext2'),S.turnStartAt+8000,l=>'異議受付中… '+l,'stealVerdict');
-    act.innerHTML=(isHost?`<button class="pri" id="bNext2" ${apOpen2?'disabled':''}>${apOpen2?'異議受付中… '+apLeft2:'次へ'}</button>`:`<div class="muted">${apOpen2?'異議受付中… '+apLeft2+'秒':'主催者が進めます'}</div>`)+
-      (canAppeal?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:'');
-    if(isHost)$('bNext2').onclick=proceedAfterSteal;
+    const rd2=(S.ready||{})[me], rc2=readyCount(S), hn2=humans(S).length;
+    act.innerHTML=`<button class="pri" id="bNext2" ${apOpen2||rd2?'disabled':''}>${apOpen2?'異議受付中… '+apLeft2:rd2?'OK済み（'+rc2+'/'+hn2+'）':'OK・次へ（'+rc2+'/'+hn2+'）'}</button>`+
+      (canAppeal&&!rd2?`<form id="fAp" class="row"><input id="inAp" class="grow" placeholder="異議の理由（任意）"><button type="submit">異議あり（再判定）</button></form>`:rd2?`<div class="muted">全員がOKを押すと進みます</div>`:'')+
+      (isHost&&rc2<hn2&&now()-S.turnStartAt>45000?`<button id="bForce2">待たずに進める（主催）</button>`:'');
+    $('bNext2').onclick=ready; if($('bForce2'))$('bForce2').onclick=proceedAfterSteal; else if(isHost&&rc2<hn2)scheduleRender('stealVerdict',Math.max(500,45000-(now()-S.turnStartAt)+100));
     if(S.mode==='rank'){ band.innerHTML+=`<div class="timer" id="tm" style="font-size:24px"></div>`; runTimer(S.turnStartAt+12000,()=>{ if(isHost)proceedAfterSteal(); }); }
     if($('fAp'))$('fAp').onsubmit=e=>{e.preventDefault();appeal($('inAp').value);};
   }
@@ -1831,13 +1853,14 @@ function render(){
       <div class="muted">投票済み：${Object.keys(S.votes||{}).length}人</div></div>`:'';
     const exHtml=(S.lastConds&&S.lastConds.length?`<div style="margin-top:6px;padding:8px 10px;border-radius:10px;background:var(--ai-soft)"><span class="lbl">こんな答えも</span><div class="muted">${esc(S.lastConds.join('・'))}</div><div><b>${S.examples?esc(S.examples.join('　'))+'':'AIが考え中…'}</b></div></div>`:'')+voteHtml;
     band.innerHTML=exHtml+`<h2>第${S.round}ラウンド終了</h2><div>${swapMode?'いらない札を選んで交換できます（1回）。しなくてもOK。次のラウンドで5枚まで補充されます。':meP.swapped?'交換済み。次のラウンドで5枚まで補充されます。':'次のラウンドで手札を5枚まで補充されます。'}</div>`;
-    const waiting=S.players.filter(p=>!p.cpu&&!p.swapped).map(p=>p.name);
-    const swLeft=Math.max(0,Math.ceil((S.turnStartAt+30000-now())/1000)); const swLock=S.mode!=='rank'&&!S.tutorial&&waiting.length>0&&swLeft>0;
-    if(swLock) tickText(()=>$('bRound'),S.turnStartAt+30000,l=>'交換待ち… '+l,'roundEnd');
-    act.innerHTML=(swapMode?`<div class="row"><button class="sec grow" id="bSwap" ${swapSel.size?'':'disabled'}>選んだ${swapSel.size}枚を交換</button><button class="grow" id="bNoSwap">交換しない</button></div>`:'')+
-      (isHost?`<button class="pri" id="bRound" ${swLock?'disabled':''}>${swLock?'交換待ち… '+swLeft:'次のラウンドへ'}</button>${waiting.length?`<div class="muted">交換を迷ってる人：${esc(waiting.join('、'))}</div>`:''}`:`<div class="muted">${swLock?'全員の交換が終わるか30秒で次へ':'主催者が次のラウンドを始めます'}</div>`);
-    if(swapMode){$('bSwap').onclick=()=>{const idx=[...swapSel];swapSel.clear();swapCards(idx);}; $('bNoSwap').onclick=async()=>{const s=clone();P(s,me).swapped=true;await save(s);};}
-    if(isHost)$('bRound').onclick=nextRound;
+    const waiting=S.players.filter(p=>!p.cpu&&!(S.ready||{})[p.id]).map(p=>p.name);
+    const rd3=(S.ready||{})[me], rc3=readyCount(S), hn3=humans(S).length;
+    act.innerHTML=(swapMode?`<div class="row"><button class="sec grow" id="bSwap" ${swapSel.size?'':'disabled'}>選んだ${swapSel.size}枚を交換</button></div>`:'')+
+      `<button class="pri" id="bRound" ${rd3||S.tutorial?'disabled':''}>${rd3?'OK済み（'+rc3+'/'+hn3+'）':'OK・次のラウンドへ（'+rc3+'/'+hn3+'）'}</button>`+
+      (waiting.length&&!S.tutorial?`<div class="muted">待ち：${esc(waiting.join('、'))}</div>`:'')+
+      (isHost&&rc3<hn3&&!S.tutorial&&now()-S.turnStartAt>60000?`<button id="bForce3">待たずに進める（主催）</button>`:'');
+    if(swapMode)$('bSwap').onclick=()=>{const idx=[...swapSel];swapSel.clear();swapCards(idx);};
+    $('bRound').onclick=ready; if($('bForce3'))$('bForce3').onclick=nextRound; else if(isHost&&rc3<hn3&&!S.tutorial)scheduleRender('roundEnd',Math.max(500,60000-(now()-S.turnStartAt)+100));
     band.querySelectorAll('button[data-k]').forEach(b=>b.onclick=()=>vote(b.dataset.k,b.dataset.id));
     if(S.mode==='rank'){ const deadline=S.turnStartAt+25000; band.innerHTML+=`<div class="timer" id="tm" style="font-size:24px"></div>`; runTimer(deadline,()=>{ if(isHost)nextRound(); }); }
   }
