@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v4.8";
+const APP_VER = "v4.9";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -1047,12 +1047,13 @@ let tutCpuKey='';
 function tutCoach(){
   const n=S.table.length, cur=S.players[S.turnIdx], mine=cur&&cur.id===me;
   if(S.phase==='play'){
-    if(n===0&&!mine){ coach('ここは練習卓。相手は<b>鶴丸</b>。ラウンド最初に<b>ジャンル</b>（今回は食べ物）が出るけど、これは<b>おまけ</b>。合えば＋1点、合わなくてもOK。<br>読めたら、鶴丸に札を出してもらおう。',[['鶴丸、どうぞ',()=>tutScript('p1')]]); spot('genreBox'); }
+    if(n===0&&!mine){ coach('ここは練習卓。相手は<b>鶴丸</b>。ラウンド最初に<b>ジャンル</b>（今回は食べ物）が出るけど、これは<b>おまけ</b>。合えば＋1点、合わなくてもOK。<br>練習中は時間切れになりません。読めたら、鶴丸に札を出してもらおう。',[['鶴丸、どうぞ',()=>tutScript('p1')]]); spot('genreBox'); }
     else if(n===1&&mine){ coach('<b>あなたの番</b>。出せるのは「場の条件＋自分の札」をぜんぶ満たす言葉が浮かんだときだけ。<br>「赤い」＋<b>「丸い」</b>なら…りんご、トマト。いけそう！手札の「丸い」をタップして「出す」。'); spot('handBox'); }
     else if(!mine&&n>=2){ coach('鶴丸の番。「赤い・丸い」に自分の札を足しても何も浮かばなかったみたい。これが<b>パス</b>。パスしたらそのラウンドはもう出せない。',[['鶴丸、パス',()=>tutScript('p2')]]); spot('gamePlayers'); }
     else if(mine&&n>=2){ coach('まだ重ねてもいいけど、条件が増えるほど難しくなる。ここは<b>パス</b>で様子見しよう。'); spot('actBox'); }
-    else { coach('手番を進めよう。'); spot('actBox'); }
+    else { coach('流れがずれちゃった。もう一度最初からやってみよう。',[['最初から',()=>{leave();startTutorial();}]]); spot('actBox'); }
   }
+  else if(S.phase==='tsuru'&&S.tsuru!==me){ coach('あれ、鶴丸が鶴になってしまった。練習では<b>あなたが鶴になる流れ</b>を見てほしいので、もう一度最初からやってみよう。',[['最初から',()=>{leave();startTutorial();}]]); spot('gamePlayers'); }
   else if(S.phase==='tsuru'){
     if(S.tsuruStage==='extra') { coach('自分以外が全員パスしたので、最後に札を出した<b>あなたが鶴</b>！<br>答える前に、手札から<b>1枚だけ追加</b>できる（15秒）。足せば成功時＋1点だけど、その条件も満たさないとダメ。「甘い」を足すか、そのまま行くか。'); spot('actBox'); }
     else { coach('<b>鶴の一声</b>！場の条件を<b>ぜんぶ</b>満たす実在の言葉を20秒で。「食べ物」ならおまけ＋1。<br>（条件をくっつけただけの造語はNG）'); spot('actBox'); }
@@ -1629,6 +1630,7 @@ function orderStrip(){
 }
 function runTimer(deadline,onEnd){
   const el=$('tm'); if(!el)return; let fired=false;
+  if(S&&S.tutorial){ el.textContent='∞'; el.classList.remove('hurry'); return; }
   const mineNow=lastTurnMine||!S;
   const tick=()=>{const r=Math.max(0,Math.ceil((deadline-now())/1000)); el.textContent=r; el.classList.toggle('hurry',r<=5);
     if(mineNow&&r>0&&r!==hurryLast){hurryLast=r; if(SET.cd==='1'||r<=5)sfx(r<=5?'hurry':'cd');}
