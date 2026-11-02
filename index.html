@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v5.2";
+const APP_VER = "v5.3";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -1387,6 +1387,7 @@ async function cpuFallback(s){
   else if(s.phase==='tsuru'){ s.answer='（宣言できず）'; s.verdict={ok:false,genreOk:false,reason:'AIが答えを出せなかった'}; applyVerdict(s); }
   else if(s.phase==='steal'){ s.stealResults.push({by:s.stealQueue[s.stealIdx],answer:'（解答なし）',ok:false}); s.stealIdx++; advanceSteal(s); }
 }
+async function cpuPace(minS,maxS){ if(!S)return; const target=(minS+Math.random()*(maxS-minS))*1000; const el=now()-(S.turnStartAt||now()); if(el<target) await new Promise(r=>setTimeout(r,target-el)); }
 async function maybeCpuInner(){
   if(!S||S.tutorial)return;
   if(S.hostId!==me||!sample)return;
@@ -1411,7 +1412,7 @@ ${tableText(S)}
 手札:
 ${handText(S,actor)}
 JSONのみで回答: {"check": [{"i": 札番号, "word": "思いついた言葉またはnull"}, ...], "play": 出す手札の番号（0始まりの数値）またはnull, "word": "その札を足しても全条件を満たす言葉", "why": "15字以内"}`);
-    if(!S||S.phase+':'+S.v!==key)return;
+    await cpuPace(5,9); if(!S||S.phase+':'+S.v!==key)return;
     const s=clone(); const p=s.players[s.turnIdx];
     let idx=-1;
     if(r&&r.play!==null&&r.play!==undefined&&r.play!==''){ idx=parseInt(r.play); if(isNaN(idx)) idx=p.hand.findIndex(c=>s.condDeck[c]===String(r.play)); }
@@ -1430,7 +1431,7 @@ ${tableText(S)}
 ${handText(S,actor)}
 あなたが前に考えていた候補: ${actor.lastWord||'なし'}
 JSONのみで回答: {"extra": 追加する手札の番号（数値）またはnull, "answer": "宣言する言葉"}`);
-    if(!S||S.phase+':'+S.v!==key)return;
+    await cpuPace(6,10); if(!S||S.phase+':'+S.v!==key)return;
     const s=clone(); const p=P(s,s.tsuru);
     const idx=r&&r.extra!==null&&r.extra!==undefined?parseInt(r.extra):-1;
     if(idx>=0&&idx<p.hand.length){ const card=p.hand.splice(idx,1)[0]; s.table.push({card,by:p.id}); log(s,p.name+'：鶴の追加札「'+s.condDeck[card]+'」'); }
@@ -1446,7 +1447,7 @@ ${tableText(S)}
 ジャンル（答えがこれに当てはまれば+1点）: ${genre}
 禁止された答え: 「${S.answer}」
 JSONのみで回答: {"answer": "別の言葉" またはnull}`);
-    if(!S||S.phase+':'+S.v!==key)return;
+    await cpuPace(5,9); if(!S||S.phase+':'+S.v!==key)return;
     const s=clone(); const p=P(s,s.stealQueue[s.stealIdx]);
     const ans=r&&r.answer?String(r.answer).trim():'';
     if(!ans||ans===s.answer){ s.stealResults.push({by:p.id,answer:'（解答なし）',ok:false}); log(s,p.name+'：同時解答なし'+(aiErr?'（AIエラー：'+aiErr+'）':'')); s.stealIdx++; advanceSteal(s); }
