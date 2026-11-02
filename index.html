@@ -19,7 +19,7 @@ const FIREBASE_CONFIG = {
 };
 // AI中継サーバー（Cloudflare Worker）のURL。設定するとAPIキー入力は不要になる
 const AI_PROXY_URL = "https://tsuru-ai.k-pon-090potter.workers.dev";
-const APP_VER = "v7.0";
+const APP_VER = "v7.1";
 // =====================================================================
 </script>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Dela+Gothic+One&family=Kaisei+Decol:wght@700&family=Zen+Kaku+Gothic+New:wght@500;700&family=Shippori+Mincho:wght@600;800&family=DotGothic16&display=swap">
@@ -281,7 +281,7 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
         <li>当たったら<b>奪い合い</b>。このラウンドに1枚でも札を出した人（途中でパスしててもOK）が、出した逆順に、鶴と違う答えを言う。当たれば鶴の札を1枚もらえる。</li>
         <li>判定に納得いかなければ「異議あり」でAIにもう一度考えてもらえる（ラウンド1回）。</li>
         <li>判定のあとやラウンドの終わりは、全員が「OK」を押したら進む。ラウンドの終わりには、いらない手札を交換できる（1回）。次のラウンドで5枚まで補充。</li>
-        <li>一声を3回外すと失格（主催者がオフにもできる）。ラウンドの終わりにMVPと戦犯の投票もできる（任意）。</li>
+        <li>一声を3回外すと失格。失格者が出たラウンドでゲーム終了、残りの人の得点勝負（主催者がオフにもできる）。ラウンドの終わりにMVPと戦犯の投票もできる（任意）。</li>
         <li>先に勝利点（初期10点）に届いた人の勝ち。誰も届かなければ最大ラウンド（初期5）終了時に得点が高い人の勝ち。</li>
       </ol>
     </details>
@@ -422,7 +422,7 @@ details summary{cursor:pointer;color:var(--ai);font-size:0.87em;font-weight:700}
       </div>
       <div class="row">
         <label class="grow"><input type="checkbox" id="inVote" checked style="width:auto;display:inline-block;margin-right:6px">ラウンド末にMVP・戦犯投票</label>
-        <label class="grow"><input type="checkbox" id="inOut" checked style="width:auto;display:inline-block;margin-right:6px">一声を3回外したら失格</label>
+        <label class="grow"><input type="checkbox" id="inOut" checked style="width:auto;display:inline-block;margin-right:6px">一声を3回外したら失格（その時点でゲーム終了）</label>
       </div>
       <details><summary>条件カードを編集する（1行1枚）</summary>
         <textarea id="inDeck"></textarea>
@@ -1006,8 +1006,9 @@ function roundEnd(s,voidRound){
   if(w){ s.phase='over'; s.winner=w.id; log(s,w.name+' が'+s.target+'点に到達。勝利！'); return; }
   if(s.rounds&&s.round>=s.rounds){ const sorted=s.players.slice().sort((a,b)=>b.score-a.score); const top=sorted[0]; const ties=sorted.filter(p=>p.score===top.score);
     s.phase='over'; s.winner=top.id; s.coWinners=ties.map(p=>p.id); log(s,s.rounds+'ラウンド終了。'+(ties.length>1?'同点：'+ties.map(p=>p.name).join('・'):top.name+' の勝利！')); return; }
-  const alive=s.players.filter(p=>!p.out);
-  if(s.outOn&&alive.length<=1){ const top=s.players.slice().sort((a,b)=>b.score-a.score)[0]; s.phase='over'; s.winner=(alive[0]||top).id; log(s,'残りが1人以下になったので終了。'+pname(s,s.winner)+' の勝利！'); return; }
+  const outs=s.players.filter(p=>p.out);
+  if(s.outOn&&outs.length){ const sorted=s.players.filter(p=>!p.out).slice().sort((a,b)=>b.score-a.score); const top=sorted[0]||s.players.slice().sort((a,b)=>b.score-a.score)[0]; const ties=sorted.filter(p=>p.score===top.score);
+    s.phase='over'; s.winner=top.id; s.coWinners=ties.map(p=>p.id); s.endBy='out'; log(s,outs.map(p=>p.name).join('・')+' が失格したのでゲーム終了。'+(ties.length>1?'同点：'+ties.map(p=>p.name).join('・'):top.name+' の勝利！')); return; }
   s.votes={}; s.ready={}; s.phase='roundEnd'; s.turnStartAt=now();
 }
 
@@ -1876,7 +1877,7 @@ function render(){
   else if(S.phase==='over'){
     const mvpTop=S.players.slice().sort((a,b)=>(b.mvp||0)-(a.mvp||0))[0], badTop=S.players.slice().sort((a,b)=>(b.bad||0)-(a.bad||0))[0];
     const co=(S.coWinners||[]).length>1?S.coWinners.map(id=>pname(S,id)):null;
-    band.innerHTML=`<h2>${co?esc(co.join('・'))+' の同点優勝！':esc(pname(S,S.winner))+' の勝利！'}</h2><div class="muted">${S.winner&&P(S,S.winner)&&P(S,S.winner).score>=S.target?S.target+'点に到達':S.rounds+'ラウンド終了'}　${S.players.slice().sort((a,b)=>b.score-a.score).map(p=>esc(p.name)+' '+p.score).join('　')}</div>`+(S.voteOn&&((mvpTop&&mvpTop.mvp)||(badTop&&badTop.bad))?`<div>👑 最多MVP：${mvpTop&&mvpTop.mvp?esc(mvpTop.name)+'（'+mvpTop.mvp+'回）':'なし'}　💀 最多戦犯：${badTop&&badTop.bad?esc(badTop.name)+'（'+badTop.bad+'回）':'なし'}</div>`:'');
+    band.innerHTML=`<h2>${co?esc(co.join('・'))+' の同点優勝！':esc(pname(S,S.winner))+' の勝利！'}</h2><div class="muted">${S.endBy==='out'?'失格者が出たので終了':S.winner&&P(S,S.winner)&&P(S,S.winner).score>=S.target?S.target+'点に到達':S.rounds+'ラウンド終了'}　${S.players.slice().sort((a,b)=>b.score-a.score).map(p=>esc(p.name)+' '+p.score).join('　')}</div>`+(S.voteOn&&((mvpTop&&mvpTop.mvp)||(badTop&&badTop.bad))?`<div>👑 最多MVP：${mvpTop&&mvpTop.mvp?esc(mvpTop.name)+'（'+mvpTop.mvp+'回）':'なし'}　💀 最多戦犯：${badTop&&badTop.bad?esc(badTop.name)+'（'+badTop.bad+'回）':'なし'}</div>`:'');
     act.innerHTML=isHost?`<button class="pri" id="bAgain">同じメンバーでもう一局（ロビーへ）</button>`:'<div class="muted">おつかれさま！</div>';
     if(isHost)$('bAgain').onclick=async()=>{const s=clone();s.phase='lobby';s.round=0;s.players.forEach(p=>{p.score=0;p.hand=[]});s.log=['再戦'];await save(s);};
   }
